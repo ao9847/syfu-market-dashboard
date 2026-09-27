@@ -117,8 +117,10 @@ button{font:inherit;color:inherit}
 .seg button{border:0;background:none;color:var(--muted);padding:3px 8px;border-radius:3px;cursor:pointer;font-family:var(--mono);font-size:12px}
 .seg button[aria-pressed="true"]{color:var(--ink);background:var(--panel-2)}
 .seg button:hover{color:var(--ink)}
-.legend{display:flex;gap:14px;color:var(--ink-2);font-size:11px;align-items:center}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;color:var(--ink-2);font-size:11px;align-items:center}
+.legend>*{white-space:nowrap}
 .legend i{display:inline-block;width:14px;height:2px;background:var(--gold);vertical-align:middle;margin-right:5px}
+.legend u{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--gold);opacity:.45;vertical-align:middle;margin-right:5px}
 #priceChart{width:100%;height:440px}
 @media (max-width:620px){#priceChart{height:360px}}
 
@@ -181,7 +183,7 @@ th[aria-sort="descending"]::after{content:" ▾";color:var(--ink-2)} th[aria-sor
 
     <section class="card">
       <div class="card-h">
-        <div class="legend"><b style="color:var(--ink)">日足</b><span><i></i>7日中央値</span></div>
+        <div class="legend" id="legend"></div>
         <div class="ctools">
           <div class="seg" id="rangeSeg" aria-label="期間"></div>
           <div class="seg" id="unitSeg" aria-label="通貨"></div>
@@ -236,13 +238,17 @@ D.rows.forEach(r=>{
     p.push((o.rank||'').toUpperCase());
     o.seg=p.join(' ');
   } else if(o.type==='genesis') o.seg='Genesis';
-  else if(o.type==='breed_item') o.seg=o.name+' · '+(o.variant||'—');
+  else if(o.type==='breed_item') o.seg=o.variant==='COLLAB'?o.name+' (COLLAB)':o.name+' '+(o.variant||'NEW');
+  else if(o.type==='excavation_right') o.seg='Right Scroll';
   else o.seg=o.name;
+  o.cat=(o.type==='breed_item'||o.type==='excavation_right')?'items':o.type;
   rows.push(o);
 });
 rows.sort((a,b)=>b.t-a.t);
 
-const TYPES=[['manekineko','MANEKINEKO'],['genesis','GENESIS'],['breed_item','ITEMS'],['excavation_right','RIGHT SCROLL']];
+const TYPES=[['manekineko','MANEKINEKO'],['genesis','GENESIS'],['items','ITEMS']];
+const ITEM_ORDER=['TAIYAKI NORMAL','TAIYAKI WHITE','The IIIRD Card (COLLAB)','Right Scroll'];
+const itemOpts=()=>{const seen=new Set(rows.filter(o=>o.cat==='items').map(o=>o.seg));return ITEM_ORDER.filter(x=>seen.has(x)).concat([...seen].filter(x=>!ITEM_ORDER.includes(x)).sort())};
 const FG={
   manekineko:[
     ['rarity','RARITY',['COMMON','UNCOMMON','RARE'],o=>[(o.rarity||'').toUpperCase()]],
@@ -252,22 +258,22 @@ const FG={
     ['edition','EDITION',['STANDARD','KDDI','LUPIN THE IIIRD','SNPIT','1BLOCK STUDIO'],o=>[o.edition]],
     ['lineage','LINEAGE',null,o=>[o.lin]],
   ],
-  breed_item:[['variant','VARIANT',['NORMAL','WHITE','COLLAB'],o=>[o.variant]]],
+  items:[['item','ITEM',itemOpts,o=>[o.seg]]],
 };
 const SHORT={COMMON:'C',UNCOMMON:'UC',RARE:'R'};
 
 /* ---------- state */
 const S={type:'manekineko',range:90,unit:'bnb',seg:null,f:{},sort:{k:'n30',d:-1},open:{}};
-try{const s=JSON.parse(localStorage.getItem('smw2')||'{}');['type','range','unit'].forEach(k=>{if(s[k]!==undefined)S[k]=s[k]});if(s.f)for(const k in s.f)S.f[k]=new Set(s.f[k]);if(s.open)S.open=s.open;}catch(e){}
+try{const s=JSON.parse(localStorage.getItem('smw2')||'{}');['type','range','unit'].forEach(k=>{if(s[k]!==undefined)S[k]=s[k]});if(!['manekineko','genesis','items'].includes(S.type))S.type='items';if(s.f)for(const k in s.f)S.f[k]=new Set(s.f[k]);if(s.open)S.open=s.open;}catch(e){}
 function save(){try{localStorage.setItem('smw2',JSON.stringify({type:S.type,range:S.range,unit:S.unit,open:S.open,f:Object.fromEntries(Object.entries(S.f).map(([k,v])=>[k,[...v]]))}))}catch(e){}}
 const fk=k=>S.type+'.'+k;
 const fset=k=>S.f[fk(k)]||(S.f[fk(k)]=new Set());
 function pass(o,skip){
-  const gs=FG[o.type];if(!gs)return true;
-  for(const [k,,,get] of gs){if(k===skip)continue;const s=S.f[o.type+'.'+k];if(s&&s.size&&!get(o).some(v=>s.has(v)))return false}
+  const gs=FG[o.cat];if(!gs)return true;
+  for(const [k,,,get] of gs){if(k===skip)continue;const s=S.f[o.cat+'.'+k];if(s&&s.size&&!get(o).some(v=>s.has(v)))return false}
   return true;
 }
-const base=()=>rows.filter(o=>o.type===S.type);
+const base=()=>rows.filter(o=>o.cat===S.type);
 const filtered=()=>base().filter(o=>pass(o));
 const scoped=()=>filtered().filter(o=>!S.seg||o.seg===S.seg);
 const activeCount=()=>(FG[S.type]||[]).reduce((n,[k])=>n+((S.f[fk(k)]||new Set()).size),0);
@@ -315,7 +321,7 @@ function drawSide(){
         body+=`<label class="opt grp ${gn?'':'zero'}"><input type="checkbox" data-group="${g}" ${on===list.length?'checked':''} data-ind="${on>0&&on<list.length?1:0}"><span class="lab">${g}</span><span class="n">${gn}</span></label>`;
         body+=list.map(x=>opt(k,x,c.get(x)||0,'sub')).join('');
       }
-    } else body=opts.map(v=>opt(k,v,c.get(v)||0)).join('');
+    } else body=(typeof opts==='function'?opts():opts).map(v=>opt(k,v,c.get(v)||0)).join('');
     h+=`<details class="fg" data-k="${k}" ${isOpen?'open':''}><summary>${label}${n?`<span class="sel">${n}</span>`:''}</summary><div class="opts">${body}</div></details>`;
   }
   if(S.type==='manekineko') h+=`<p class="note" style="padding:10px 14px">STAGE は売却時レベルから判定（Lv1–2 POD / 3–9 MINI / 10+ PRIME）。同じ項目内は OR、項目どうしは AND で絞り込みます。</p>`;
@@ -357,11 +363,21 @@ function drawTicker(list){
     else if(c.dataset.group)LINEAGES[c.dataset.group].forEach(x=>fset('lineage').delete(x));
     else fset(c.dataset.k).delete(c.dataset.v);
     save();render()};
-  const now=Date.now()/1000;const w=(a,b)=>list.filter(o=>o.t>now-b*DAY&&o.t<=now-a*DAY).map(V).filter(isFinite);
+  const now=Date.now()/1000;
+  const segs=[...new Set(list.map(o=>o.seg))];
+  if(S.type==='items'&&segs.length>1){
+    const order=ITEM_ORDER.filter(x=>segs.includes(x)).concat(segs.filter(x=>!ITEM_ORDER.includes(x)));
+    const pe=document.getElementById('tPrice');pe.textContent='';pe.className='big';pe.hidden=true;
+    document.getElementById('tPriceSub').textContent='直近価格と7日変動。ITEMフィルターで1つに絞ると詳細を表示します。';
+    document.getElementById('stats').innerHTML=order.map(seg=>{const l=list.filter(o=>o.seg===seg);const ww=(a,b)=>l.filter(o=>o.t>now-b*DAY&&o.t<=now-a*DAY).map(V).filter(isFinite);const p7=pct(med(ww(0,7)),med(ww(7,14)));
+      return `<div class="stat"><span class="k"><i style="display:inline-block;width:8px;height:2px;vertical-align:middle;margin-right:4px;background:${ITEM_COLORS[seg]||'var(--ink-2)'}"></i>${esc(seg)}</span><span class="v">${fmt(V(l[0]))} <span class="${cls(p7)}" style="font-size:11px">${pctTxt(p7)}</span></span></div>`}).join('');
+    return;
+  }
+  const w=(a,b)=>list.filter(o=>o.t>now-b*DAY&&o.t<=now-a*DAY).map(V).filter(isFinite);
   const last=list[0];
   const m7=med(w(0,7)),mp7=med(w(7,14)),m30=med(w(0,30)),mp30=med(w(30,60));
   const l30=w(0,30),v7=w(0,7).reduce((s,x)=>s+x,0),vp7=w(7,14).reduce((s,x)=>s+x,0);
-  const pe=document.getElementById('tPrice');
+  const pe=document.getElementById('tPrice');pe.hidden=false;
   pe.textContent=last?fmt(V(last))+' '+unitLab():'—';pe.className='big '+cls(pct(m7,mp7));
   document.getElementById('tPriceSub').innerHTML=last?`直近約定 ${fShort(last.t)}${S.unit==='bnb'&&last.usd!=null?' · ≈ '+fmt(last.usd,'usd'):''}${!S.seg?' · '+esc(last.seg):''}`:'該当する取引がありません';
   const st=[
@@ -389,37 +405,52 @@ const AX=()=>({axisLine:{lineStyle:{color:css('--line-2')}},axisTick:{show:false
 const TIP=()=>({backgroundColor:css('--panel-2'),borderColor:css('--line-2'),textStyle:{color:css('--ink'),fontSize:12,fontFamily:'IBM Plex Mono'},extraCssText:'border-radius:4px;box-shadow:0 6px 20px rgba(0,0,0,.4)'});
 const dayLab=d=>{const x=new Date(d*DAY*1000);return pad(x.getUTCMonth()+1)+'/'+pad(x.getUTCDate())};
 
+const ITEM_COLORS={'TAIYAKI NORMAL':'#4c8ff0','TAIYAKI WHITE':'#e3703c','The IIIRD Card (COLLAB)':'#22b389','Right Scroll':'#d9a21b'};
 function drawPrice(list){
   const T=today();const r=list.filter(o=>isFinite(V(o)));
   const first=r.length?r[r.length-1].day:T;
   const d0=S.range?Math.max(first,T-S.range+1):first;
-  const byDay=new Map();[...r].reverse().forEach(o=>{if(!byDay.has(o.day))byDay.set(o.day,[]);byDay.get(o.day).push(V(o))});
-  const days=[],ohlc=[],vol=[],ma=[],cnt=[];
-  for(let d=d0;d<=T;d++){
-    days.push(dayLab(d));const a=byDay.get(d);
-    if(a){ohlc.push([a[0],a[a.length-1],Math.min(...a),Math.max(...a)]);vol.push({value:a.reduce((s,x)=>s+x,0),itemStyle:{color:a[a.length-1]>=a[0]?'rgba(24,192,122,.45)':'rgba(240,71,79,.45)'}});cnt.push(a.length)}
-    else{ohlc.push(['-','-','-','-']);vol.push({value:0});cnt.push(0)}
-    const win=[];for(let k=d-6;k<=d;k++)if(byDay.has(k))win.push(...byDay.get(k));ma.push(win.length?med(win):'-');
+  const idx=d=>d-d0;
+  const days=[];for(let d=d0;d<=T;d++)days.push(dayLab(d));
+  const inR=r.filter(o=>o.day>=d0);
+  const segs=[...new Set(inR.map(o=>o.seg))];
+  const multi=S.type==='items'&&segs.length>1;
+  const daily=l=>{const m=new Map();l.forEach(o=>{if(!m.has(o.day))m.set(o.day,[]);m.get(o.day).push(V(o))});return m};
+  const all=daily(inR);
+  const vol=days.map((_,i)=>{const a=all.get(d0+i);return a?a.reduce((s,x)=>s+x,0):0});
+  const cnt=days.map((_,i)=>(all.get(d0+i)||[]).length);
+  const ax=AX();const series=[];
+  const leg=document.getElementById('legend');
+  if(multi){
+    const order=ITEM_ORDER.filter(x=>segs.includes(x)).concat(segs.filter(x=>!ITEM_ORDER.includes(x)));
+    order.forEach(seg=>{const m=daily(inR.filter(o=>o.seg===seg));const c=ITEM_COLORS[seg]||css('--ink-2');
+      series.push({name:seg,type:'line',data:days.map((_,i)=>{const a=m.get(d0+i);return a?med(a):'-'}),connectNulls:true,showSymbol:true,symbolSize:4,lineStyle:{width:2,color:c},itemStyle:{color:c}})});
+    leg.innerHTML='<b style="color:var(--ink)">日次中央値</b>'+order.map(x=>`<span><i style="background:${ITEM_COLORS[x]||'var(--ink-2)'}"></i>${esc(x)}</span>`).join('');
+  } else {
+    const med1=days.map((_,i)=>{const a=all.get(d0+i);return a?med(a):'-'});
+    const c=css('--gold');
+    series.push({name:'個別の約定',type:'scatter',data:inR.map(o=>[idx(o.day),V(o)]),symbolSize:5,itemStyle:{color:c,opacity:.22},silent:true,z:1});
+    series.push({name:'日次中央値',type:'line',data:med1,connectNulls:true,showSymbol:true,symbol:'circle',symbolSize:4,lineStyle:{width:2,color:c},itemStyle:{color:c},areaStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(232,180,74,.18)'},{offset:1,color:'rgba(232,180,74,0)'}])},z:3,
+      markLine:{symbol:'none',silent:true,label:{position:'end',formatter:p=>fmt(p.value),color:'#0b0e12',backgroundColor:css('--ink-2'),padding:[2,4],borderRadius:2,fontFamily:'IBM Plex Mono',fontSize:10.5},lineStyle:{color:css('--ink-2'),type:'dashed',width:1},data:r.length?[{yAxis:V(r[0])}]:[]}});
+    leg.innerHTML='<span><i></i>日次中央値</span><span><u></u>個別の約定</span><span class="flat">破線 = 直近の成約価格</span>';
   }
-  const ax=AX();
+  series.push({name:'出来高',type:'bar',data:vol,xAxisIndex:1,yAxisIndex:1,barMaxWidth:10,itemStyle:{color:'rgba(163,173,187,.35)',borderRadius:[2,2,0,0]}});
   chart('priceChart').setOption({
     animation:false,
     axisPointer:{link:[{xAxisIndex:'all'}],lineStyle:{color:css('--muted'),type:'dashed'},label:{backgroundColor:css('--line-2'),fontFamily:'IBM Plex Mono',formatter:p=>typeof p.value==='number'?fmt(p.value):p.value}},
     tooltip:{...TIP(),trigger:'axis',axisPointer:{type:'cross'},formatter:ps=>{
-      const i=ps[0].dataIndex;const o=ohlc[i];const u=unitLab();
-      if(o[0]==='-')return `<b>${days[i]}</b><br><span style="color:${css('--muted')}">約定なし</span>${ma[i]!=='-'?`<br><span style="color:${css('--gold')}">7D中央値 ${fmt(ma[i])}</span>`:''}`;
-      const c=o[1]>=o[0]?css('--up'):css('--down');
-      return `<b>${days[i]}</b> <span style="color:${css('--muted')}">${cnt[i]}件</span><br>始 ${fmt(o[0])}　高 ${fmt(o[3])}<br>安 ${fmt(o[2])}　終 <span style="color:${c}">${fmt(o[1])}</span><br><span style="color:${css('--gold')}">7D中央値 ${fmt(ma[i])}</span><br>出来高 ${fmt(vol[i].value||0)} ${u}`}},
+      const i=ps[0].dataIndex;const a=all.get(d0+i)||[];
+      let h=`<b>${days[i]}</b> <span style="color:${css('--muted')}">${cnt[i]}件</span>`;
+      if(multi){ps.filter(p=>p.seriesType==='line'&&p.value!=='-'&&p.value!=null).forEach(p=>{h+=`<br>${p.marker}${esc(p.seriesName)} ${fmt(p.value)}`})}
+      else if(a.length){h+=`<br><span style="color:${css('--gold')}">中央値 ${fmt(med(a))}</span><br>安 ${fmt(Math.min(...a))}　高 ${fmt(Math.max(...a))}`}
+      else h+=`<br><span style="color:${css('--muted')}">約定なし</span>`;
+      return h+`<br>出来高 ${fmt(vol[i])} ${unitLab()}`}},
+    legend:{show:false},
     grid:[{left:10,right:66,top:16,height:'64%'},{left:10,right:66,top:'78%',bottom:24}],
-    xAxis:[{type:'category',data:days,...ax,axisLabel:{show:false},splitLine:{show:false}},{type:'category',data:days,gridIndex:1,...ax,splitLine:{show:false}}],
+    xAxis:[{type:'category',data:days,...ax,axisLabel:{show:false},splitLine:{show:false},boundaryGap:false},{type:'category',data:days,gridIndex:1,...ax,splitLine:{show:false}}],
     yAxis:[{type:'value',scale:true,position:'right',...ax,axisLabel:{...ax.axisLabel,formatter:v=>fmt(v)}},{type:'value',gridIndex:1,position:'right',...ax,splitNumber:2,axisLabel:{...ax.axisLabel,formatter:v=>fmt(v)}}],
     dataZoom:[{type:'inside',xAxisIndex:[0,1],start:0,end:100}],
-    series:[
-      {type:'candlestick',data:ohlc,barMaxWidth:12,itemStyle:{color:css('--up'),color0:css('--down'),borderColor:css('--up'),borderColor0:css('--down')},
-       markLine:{symbol:'none',silent:true,label:{position:'end',formatter:p=>fmt(p.value),color:'#0b0e12',backgroundColor:css('--ink-2'),padding:[2,4],borderRadius:2,fontFamily:'IBM Plex Mono',fontSize:10.5},lineStyle:{color:css('--ink-2'),type:'dashed',width:1},data:r.length?[{yAxis:V(r[0])}]:[]}},
-      {type:'line',data:ma,showSymbol:false,connectNulls:true,lineStyle:{width:1.6,color:css('--gold')},itemStyle:{color:css('--gold')},z:3},
-      {type:'bar',data:vol,xAxisIndex:1,yAxisIndex:1,barMaxWidth:12}
-    ]
+    series
   },true);
 }
 
