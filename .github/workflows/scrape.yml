@@ -1,0 +1,51 @@
+name: scrape
+
+on:
+  schedule:
+    # 03:47 JST daily (18:47 UTC) - off-peak, off the top of the hour
+    - cron: "47 18 * * *"
+  push:
+    branches: [main]
+    paths: ["scraper/**", ".github/workflows/**"]
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "daily or backfill"
+        default: "daily"
+        type: choice
+        options: [daily, backfill]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: scrape
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Scrape
+        run: python scraper/scrape.py "${{ github.event.inputs.mode || 'daily' }}"
+
+      - name: Build dashboard
+        if: always()
+        run: python scraper/build_dashboard.py
+
+      - name: Commit
+        if: always()
+        run: |
+          git config user.name "syfu-scraper"
+          git config user.email "actions@users.noreply.github.com"
+          git add data dist
+          git diff --cached --quiet || git commit -m "data: $(date -u +%Y-%m-%dT%H:%MZ)"
+          git pull --rebase --autostash origin main
+          git push
