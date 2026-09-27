@@ -1,3 +1,341 @@
 <title>SyFu Market Watch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+JP:wght@400;500;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
+<style>
+:root{
+  --bg:#f4f5f7; --surface:#ffffff; --surface-2:#eef0f3; --ink:#14171c; --ink-2:#4a5160; --muted:#7b8392;
+  --line:#e2e5ea; --grid:#eceef2; --accent:#9a6a0c; --accent-soft:#f6ecd6;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --up:#0b8a0b; --down:#c93434;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sans:"IBM Plex Sans JP","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#101217; --surface:#191c22; --surface-2:#22262e; --ink:#f1f2f4; --ink-2:#b8bec9; --muted:#858c99;
+    --line:#2a2f38; --grid:#23272f; --accent:#e0ae45; --accent-soft:#3a2f17;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --up:#3cc23c; --down:#ef6a6a;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#101217; --surface:#191c22; --surface-2:#22262e; --ink:#f1f2f4; --ink-2:#b8bec9; --muted:#858c99;
+  --line:#2a2f38; --grid:#23272f; --accent:#e0ae45; --accent-soft:#3a2f17;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --up:#3cc23c; --down:#ef6a6a;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.55;margin:0}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:20px 48px;display:flex;flex-direction:column;gap:16px}
+.num,.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 24px}
+header.top h1{font-size:22px;font-weight:700;margin:0;letter-spacing:.01em;text-wrap:balance}
+header.top h1 .coin{display:inline-block;width:14px;height:18px;border-radius:50%/50%;background:var(--accent);margin-right:10px;vertical-align:-2px;box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--accent) 60%,#fff)}
+.meta{color:var(--muted);font-size:12px}
+.controls{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);padding-block:8px;margin-block:-8px}
+.seg{display:inline-flex;background:var(--surface-2);border-radius:8px;padding:3px;gap:2px;flex-wrap:wrap}
+.seg button{font:inherit;font-size:13px;border:0;background:transparent;color:var(--ink-2);padding:5px 11px;border-radius:6px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);font-weight:500;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+.seg button:focus-visible,.chip:focus-visible,input:focus-visible,tr[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.segpill{display:inline-flex;align-items:center;gap:6px;background:var(--accent-soft);color:var(--ink);border-radius:999px;padding:4px 6px 4px 12px;font-size:13px}
+.segpill button{border:0;background:transparent;color:var(--ink-2);cursor:pointer;font-size:15px;line-height:1;padding:2px 6px;border-radius:999px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.kpi{background:var(--surface);padding:12px 14px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.kpi .lab{font-size:11px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.kpi .val{font-family:var(--mono);font-size:20px;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi .sub{font-size:12px;color:var(--ink-2);font-family:var(--mono)}
+.up{color:var(--up)} .down{color:var(--down)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 14px 10px;min-width:0}
+.panel h2{font-size:14px;font-weight:700;margin:0 0 2px}
+.panel .hint{font-size:12px;color:var(--muted);margin:0 0 8px}
+.chart{width:100%;height:300px}
+.chart.short{height:150px}
+.grid2{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px}
+@media (max-width:860px){.grid2{grid-template-columns:minmax(0,1fr)}}
+.tbl{overflow-x:auto;margin-inline:-14px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:7px 10px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--grid)}
+th{font-size:11px;color:var(--muted);font-weight:500;letter-spacing:.04em;position:sticky;top:0;background:var(--surface);cursor:pointer;user-select:none}
+th:first-child,td:first-child{text-align:left;padding-left:14px}
+th:last-child,td:last-child{padding-right:14px}
+td.num{font-family:var(--mono)}
+tbody tr[tabindex]{cursor:pointer}
+tbody tr[tabindex]:hover{background:var(--surface-2)}
+tbody tr.sel{background:var(--accent-soft)}
+th[aria-sort="descending"]::after{content:" ↓"} th[aria-sort="ascending"]::after{content:" ↑"}
+.tag{display:inline-block;font-size:11px;padding:1px 6px;border-radius:4px;background:var(--surface-2);color:var(--ink-2);margin-left:6px;vertical-align:1px}
+.tag.elite{background:var(--accent-soft);color:var(--accent)}
+.search{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.search input{font:inherit;font-family:var(--mono);background:var(--surface-2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:7px 10px;width:220px;max-width:100%}
+.empty{color:var(--muted);font-size:13px;padding:10px 0}
+.scroll{max-height:420px;overflow:auto}
+footer{color:var(--muted);font-size:12px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <h1><span class="coin" aria-hidden="true"></span>SyFu Market Watch</h1>
+    <div class="meta" id="meta"></div>
+  </header>
+
+  <div class="controls" role="toolbar" aria-label="フィルタ">
+    <div class="seg" id="typeSeg" aria-label="種類"></div>
+    <div class="seg" id="rangeSeg" aria-label="期間"></div>
+    <div class="seg" id="unitSeg" aria-label="通貨"></div>
+    <span id="segPill" hidden></span>
+  </div>
+
+  <section class="kpis" id="kpis" aria-label="主要指標"></section>
+
+  <section class="panel">
+    <h2 id="priceTitle">成約価格の推移</h2>
+    <p class="hint">点は1件ずつの成約、線は日ごとの中央値（JST）。</p>
+    <div class="chart" id="priceChart" role="img" aria-label="成約価格の推移"></div>
+    <div class="chart short" id="volChart" role="img" aria-label="日次出来高"></div>
+  </section>
+
+  <section class="panel">
+    <h2>相場表</h2>
+    <p class="hint" id="segHint">行を選ぶと、上のチャートと指標がその区分に絞り込まれます。</p>
+    <div class="tbl scroll"><table id="segTable"></table></div>
+  </section>
+
+  <div class="grid2">
+    <section class="panel" id="levelPanel">
+      <h2>レベルと価格</h2>
+      <p class="hint">MANEKINEKOの売却時レベル別の成約価格。</p>
+      <div class="chart" id="levelChart" role="img" aria-label="レベルと価格の散布図"></div>
+    </section>
+    <section class="panel">
+      <h2>tokenIdで検索</h2>
+      <div class="search"><input id="q" type="search" inputmode="numeric" placeholder="例: 7786" aria-label="tokenId"></div>
+      <div id="qResult" class="tbl"></div>
+    </section>
+  </div>
+
+  <section class="panel">
+    <h2>直近の成約</h2>
+    <div class="tbl scroll"><table id="recent"></table></div>
+  </section>
+
+  <footer id="foot"></footer>
+</div>
+
 <script>window.__DATA__=/*__DATA__*/null;</script>
-<p>building…</p>
+<script>
+(function(){
+const D = window.__DATA__ || {cols:[],rows:[]};
+const C = {}; D.cols.forEach((c,i)=>C[c]=i);
+const JST = 9*3600;
+const rows = D.rows.map(r=>{
+  const o={}; D.cols.forEach((c,i)=>o[c]=r[i]);
+  o.day = Math.floor((o.t+JST)/86400); // JST day index
+  o.seg = segOf(o);
+  return o;
+}).sort((a,b)=>b.t-a.t);
+
+function cap(s){return s? s.charAt(0).toUpperCase()+s.slice(1):s}
+function segOf(o){
+  if(o.type==='manekineko'){
+    const parts=[cap(o.rarity)||'—'];
+    if(o.origin==='OG') parts.push('OG');
+    if(o.lineage) parts.push(cap(o.lineage));
+    parts.push((o.rank||'').toUpperCase()||'—');
+    return parts.join(' ');
+  }
+  if(o.type==='genesis') return 'Genesis';
+  return o.name + (o.rarity? ' · '+cap(o.rarity):'');
+}
+
+const TYPES=[['manekineko','MANEKINEKO'],['genesis','Genesis'],['breed_item','ブリードアイテム'],['excavation_right','Right Scroll'],['all','すべて']];
+const RANGES=[[30,'30日'],[90,'90日'],[0,'全期間']];
+const UNITS=[['bnb','BNB'],['usd','USD']];
+const S={type:'manekineko',range:90,unit:'bnb',seg:null,sort:{k:'n30',d:-1}};
+try{const s=JSON.parse(localStorage.getItem('smw')||'{}'); ['type','range','unit'].forEach(k=>{if(s[k]!==undefined)S[k]=s[k]});}catch(e){}
+function persist(){try{localStorage.setItem('smw',JSON.stringify({type:S.type,range:S.range,unit:S.unit}))}catch(e){}}
+
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const fmtDay=d=>{const x=new Date(d*86400000);return (x.getUTCMonth()+1)+'/'+x.getUTCDate()};
+const fmtTime=t=>{const x=new Date((t+JST)*1000);const p=n=>String(n).padStart(2,'0');return x.getUTCFullYear()+'/'+p(x.getUTCMonth()+1)+'/'+p(x.getUTCDate())+' '+p(x.getUTCHours())+':'+p(x.getUTCMinutes())};
+const val=o=>S.unit==='usd'?(o.usd??NaN):o.bnb;
+function fmtV(v,unit){unit=unit||S.unit; if(v==null||isNaN(v))return '—'; return unit==='usd'? '$'+v.toLocaleString('en-US',{maximumFractionDigits:v<100?2:0}) : (v>=10?v.toFixed(2):v>=1?v.toFixed(3):v.toFixed(4))+' BNB'}
+function median(a){if(!a.length)return NaN;const s=[...a].sort((x,y)=>x-y),m=s.length>>1;return s.length%2?s[m]:(s[m-1]+s[m])/2}
+function pct(a,b){return (isFinite(a)&&isFinite(b)&&b>0)?(a/b-1)*100:NaN}
+function chg(p){if(!isFinite(p))return '<span class="meta">—</span>';const c=p>=0?'up':'down';return `<span class="${c}">${p>=0?'▲':'▼'} ${Math.abs(p).toFixed(1)}%</span>`}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+const today = rows.length? Math.floor((Date.now()/1000+JST)/86400) : 0;
+function inType(o){return S.type==='all'||o.type===S.type}
+function scoped(){return rows.filter(o=>inType(o)&&(!S.seg||o.seg===S.seg))}
+function inRange(o){return !S.range||o.day>today-S.range}
+
+/* ------------ controls */
+function segButtons(el,items,key,onSel){
+  el.innerHTML=items.map(([v,l])=>`<button type="button" data-v="${v}" aria-pressed="${S[key]==v}">${l}</button>`).join('');
+  el.onclick=e=>{const b=e.target.closest('button');if(!b)return;let v=b.dataset.v;if(key==='range')v=+v;S[key]=v;if(onSel)onSel();persist();render();};
+}
+function drawControls(){
+  segButtons(document.getElementById('typeSeg'),TYPES,'type',()=>{S.seg=null});
+  segButtons(document.getElementById('rangeSeg'),RANGES,'range');
+  segButtons(document.getElementById('unitSeg'),UNITS,'unit');
+  const pill=document.getElementById('segPill');
+  if(S.seg){pill.hidden=false;pill.className='segpill';pill.innerHTML=`${esc(S.seg)} <button type="button" aria-label="区分の絞り込みを解除">×</button>`;pill.querySelector('button').onclick=()=>{S.seg=null;render()};}
+  else pill.hidden=true;
+}
+
+/* ------------ KPIs */
+function drawKpis(list){
+  const now=Date.now()/1000, d=86400;
+  const w=(a,b)=>list.filter(o=>o.t>now-b*d&&o.t<=now-a*d);
+  const l7=w(0,7), p7=w(7,14), l30=w(0,30);
+  const m7=median(l7.map(val)), mp=median(p7.map(val));
+  const vol7=l7.reduce((s,o)=>s+(val(o)||0),0), volp=p7.reduce((s,o)=>s+(val(o)||0),0);
+  const last=list[0];
+  const k=[
+    ['直近の成約', last?fmtV(val(last)):'—', last?esc(last.seg)+' · '+fmtTime(last.t).slice(5):''],
+    ['7日 中央値', fmtV(m7), '前週比 '+chg(pct(m7,mp))],
+    ['7日 出来高', fmtV(vol7), '前週比 '+chg(pct(vol7,volp))],
+    ['7日 件数', l7.length+' 件', '前週 '+p7.length+' 件'],
+    ['30日 件数', l30.length+' 件', '累計 '+list.length+' 件'],
+  ];
+  document.getElementById('kpis').innerHTML=k.map(([a,b,c])=>`<div class="kpi"><span class="lab">${a}</span><span class="val">${b}</span><span class="sub">${c}</span></div>`).join('');
+}
+
+/* ------------ charts */
+const charts={};
+function chart(id){if(!charts[id]){charts[id]=echarts.init(document.getElementById(id),null,{renderer:'canvas'});} return charts[id];}
+function baseAxis(){return {axisLine:{lineStyle:{color:css('--line')}},axisTick:{show:false},axisLabel:{color:css('--muted'),fontFamily:'IBM Plex Mono',fontSize:11},splitLine:{lineStyle:{color:css('--grid')}}}}
+function tip(){return {backgroundColor:css('--surface'),borderColor:css('--line'),textStyle:{color:css('--ink'),fontSize:12},extraCssText:'box-shadow:0 4px 14px rgba(0,0,0,.12);border-radius:8px'}}
+
+function drawPrice(list){
+  const r=list.filter(inRange).filter(o=>isFinite(val(o)));
+  const byDay=new Map();
+  r.forEach(o=>{if(!byDay.has(o.day))byDay.set(o.day,[]);byDay.get(o.day).push(val(o))});
+  const d0=r.length?Math.min(...r.map(o=>o.day)):today, days=[];
+  for(let d=S.range?Math.max(d0,today-S.range+1):d0; d<=today; d++) days.push(d);
+  const med=days.map(d=>byDay.has(d)?[d*86400000,median(byDay.get(d))]:[d*86400000,null]);
+  const vol=days.map(d=>[d*86400000,byDay.has(d)?byDay.get(d).reduce((s,v)=>s+v,0):0]);
+  const cnt=new Map(days.map(d=>[d,byDay.has(d)?byDay.get(d).length:0]));
+  const pts=r.map(o=>[ (o.day*86400000)+((o.t+JST)%86400)*1000, val(o), o.seg, o.token, o.level]);
+  const s1=css('--s1'), ax=baseAxis();
+  const unitLab=S.unit==='usd'?'USD':'BNB';
+  document.getElementById('priceTitle').textContent=(S.seg||TYPES.find(t=>t[0]===S.type)[1])+' の成約価格の推移';
+  const xAxis={type:'time',...ax,splitLine:{show:false},axisLabel:{...ax.axisLabel,formatter:v=>fmtDay(Math.floor(v/86400000))}};
+  chart('priceChart').setOption({
+    animation:false, grid:{left:8,right:12,top:14,bottom:4,containLabel:true},
+    tooltip:{...tip(),trigger:'item',formatter:p=>{
+      if(p.seriesIndex===0){const [t,v,seg,tok,lv]=p.data;return `<b>${esc(seg)}</b>${S.type==='manekineko'||S.type==='genesis'?' #'+esc(tok):''}<br>${fmtV(v)}${lv?' · Lv.'+lv:''}<br><span style="color:${css('--muted')}">${fmtTime(Math.floor(t/1000)-JST)}</span>`}
+      const d=Math.floor(p.data[0]/86400000);return `${fmtDay(d)} 中央値<br><b>${fmtV(p.data[1])}</b> · ${cnt.get(d)||0}件`}},
+    xAxis, yAxis:{type:'value',scale:true,...ax,name:unitLab,nameTextStyle:{color:css('--muted'),fontSize:11,align:'left'}},
+    series:[
+      {type:'scatter',data:pts,symbolSize:6,itemStyle:{color:s1,opacity:.28},emphasis:{itemStyle:{opacity:1,borderColor:css('--surface'),borderWidth:2}},z:1},
+      {type:'line',data:med,connectNulls:true,showSymbol:false,symbolSize:8,lineStyle:{width:2,color:s1},itemStyle:{color:s1},z:3,
+        endLabel:{show:true,formatter:p=>fmtV(p.data[1]).replace(' BNB',''),color:css('--ink'),fontFamily:'IBM Plex Mono',fontSize:11,backgroundColor:css('--surface'),padding:[2,4]}}
+    ]
+  },true);
+  chart('volChart').setOption({
+    animation:false, grid:{left:8,right:12,top:22,bottom:4,containLabel:true},
+    title:{text:'日次出来高 ('+unitLab+')',textStyle:{color:css('--muted'),fontSize:11,fontWeight:500},left:0,top:0},
+    tooltip:{...tip(),trigger:'axis',axisPointer:{type:'shadow'},formatter:ps=>{const p=ps[0];const d=Math.floor(p.data[0]/86400000);return `${fmtDay(d)}<br><b>${fmtV(p.data[1])}</b> · ${cnt.get(d)||0}件`}},
+    xAxis, yAxis:{type:'value',...ax,splitNumber:2},
+    series:[{type:'bar',data:vol,barMaxWidth:14,itemStyle:{color:css('--s1'),opacity:.75,borderRadius:[3,3,0,0]}}]
+  },true);
+}
+
+function drawLevel(){
+  const panel=document.getElementById('levelPanel');
+  const show=S.type==='manekineko'||S.type==='all';
+  panel.hidden=!show; if(!show)return;
+  const r=rows.filter(o=>o.type==='manekineko'&&(!S.seg||o.seg===S.seg)&&inRange(o)&&isFinite(val(o)));
+  const rar=['common','uncommon','rare'].filter(x=>r.some(o=>o.rarity===x));
+  const others=r.filter(o=>!['common','uncommon','rare'].includes(o.rarity));
+  const colors=[css('--s1'),css('--s2'),css('--s3')];
+  const ser=rar.map((x,i)=>({name:cap(x),type:'scatter',symbolSize:8,data:r.filter(o=>o.rarity===x).map(o=>[o.level,val(o),o.seg,o.token]),itemStyle:{color:colors[i],opacity:.55,borderColor:css('--surface'),borderWidth:1}}));
+  if(others.length) ser.push({name:'その他',type:'scatter',symbolSize:8,data:others.map(o=>[o.level,val(o),o.seg,o.token]),itemStyle:{color:css('--muted'),opacity:.5}});
+  const ax=baseAxis();
+  chart('levelChart').setOption({
+    animation:false, grid:{left:8,right:12,top:30,bottom:20,containLabel:true},
+    legend:{top:0,left:0,textStyle:{color:css('--ink-2'),fontSize:12},itemWidth:10,itemHeight:10},
+    tooltip:{...tip(),trigger:'item',formatter:p=>`<b>${esc(p.data[2])}</b> #${esc(p.data[3])}<br>Lv.${p.data[0]} · ${fmtV(p.data[1])}`},
+    xAxis:{type:'value',...ax,name:'Lv',nameLocation:'end',nameTextStyle:{color:css('--muted')},minInterval:1},
+    yAxis:{type:'value',scale:true,...ax},
+    series:ser
+  },true);
+}
+
+/* ------------ segment table */
+function spark(vals){
+  const v=vals.filter(x=>isFinite(x)); if(v.length<2) return '';
+  const w=72,h=20,mn=Math.min(...v),mx=Math.max(...v),rg=mx-mn||1;
+  let pts=[],i=0; vals.forEach((x,j)=>{if(isFinite(x))pts.push([j/(vals.length-1)*w, h-2-(x-mn)/rg*(h-4)])});
+  const d=pts.map((p,k)=>(k?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join('');
+  const e=pts[pts.length-1];
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"><path d="${d}" fill="none" stroke="var(--s1)" stroke-width="1.5"/><circle cx="${e[0]}" cy="${e[1]}" r="2.5" fill="var(--s1)"/></svg>`;
+}
+function drawSegTable(){
+  const now=Date.now()/1000,d=86400;
+  const g=new Map();
+  rows.filter(inType).forEach(o=>{if(!g.has(o.seg))g.set(o.seg,[]);g.get(o.seg).push(o)});
+  let data=[...g.entries()].map(([seg,l])=>{
+    const v7=l.filter(o=>o.t>now-7*d).map(val), vp=l.filter(o=>o.t>now-14*d&&o.t<=now-7*d).map(val);
+    const v30=l.filter(o=>o.t>now-30*d).map(val), vp30=l.filter(o=>o.t>now-60*d&&o.t<=now-30*d).map(val);
+    const weeks=[];for(let k=11;k>=0;k--){weeks.push(median(l.filter(o=>o.t>now-(k+1)*7*d&&o.t<=now-k*7*d).map(val)))}
+    const elite=l.filter(o=>o.talent==='elite').length;
+    return {seg,last:val(l[0]),lastT:l[0].t,m7:median(v7),m30:median(v30),c7:pct(median(v7),median(vp)),c30:pct(median(v30),median(vp30)),n30:v30.length,n:l.length,min30:v30.length?Math.min(...v30):NaN,weeks,elite:l[0].type==='manekineko'?elite/l.length:null};
+  });
+  const k=S.sort.k,dir=S.sort.d;
+  data.sort((a,b)=>{const x=a[k],y=b[k];if(typeof x==='string')return dir*x.localeCompare(y);const nx=isFinite(x)?x:-Infinity,ny=isFinite(y)?y:-Infinity;return dir*(nx-ny)});
+  const cols=[['seg','区分'],['last','直近価格'],['m7','7日中央値'],['c7','前週比'],['m30','30日中央値'],['c30','前月比'],['min30','30日最安'],['n30','30日件数'],['n','累計'],['weeks','12週の推移']];
+  const th=cols.map(([c,l])=>`<th scope="col" data-k="${c}" ${c===k?`aria-sort="${dir<0?'descending':'ascending'}"`:''}>${l}</th>`).join('');
+  const tr=data.map(r=>`<tr tabindex="0" data-seg="${esc(r.seg)}" class="${S.seg===r.seg?'sel':''}"><td>${esc(r.seg)}${r.elite?`<span class="tag elite" title="elite比率">elite ${(r.elite*100).toFixed(0)}%</span>`:''}</td><td class="num">${fmtV(r.last)}</td><td class="num">${fmtV(r.m7)}</td><td class="num">${chg(r.c7)}</td><td class="num">${fmtV(r.m30)}</td><td class="num">${chg(r.c30)}</td><td class="num">${fmtV(r.min30)}</td><td class="num">${r.n30}</td><td class="num">${r.n}</td><td>${spark(r.weeks)}</td></tr>`).join('');
+  const t=document.getElementById('segTable');
+  t.innerHTML=`<thead><tr>${th}</tr></thead><tbody>${tr||'<tr><td class="empty">データがありません</td></tr>'}</tbody>`;
+  t.querySelector('thead').onclick=e=>{const h=e.target.closest('th');if(!h||h.dataset.k==='weeks')return;const kk=h.dataset.k;S.sort={k:kk,d:S.sort.k===kk?-S.sort.d:(kk==='seg'?1:-1)};drawSegTable()};
+  const pick=e=>{const r=e.target.closest('tr[data-seg]');if(!r)return;S.seg=S.seg===r.dataset.seg?null:r.dataset.seg;render();window.scrollTo({top:0,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'})};
+  t.querySelector('tbody').onclick=pick;
+  t.querySelector('tbody').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pick(e)}};
+}
+
+/* ------------ lists */
+function tradeRows(list,withSeg){
+  return list.map(o=>`<tr><td class="mono">${fmtTime(o.t)}</td>${withSeg?`<td style="text-align:left">${esc(o.seg)}${o.talent==='elite'?'<span class="tag elite">elite</span>':''}</td>`:''}<td class="num">${o.type==='manekineko'||o.type==='genesis'?'#'+esc(o.token):''}</td><td class="num">${o.level?'Lv.'+o.level:''}</td><td class="num">${fmtV(o.bnb,'bnb')}</td><td class="num">${o.usd!=null?fmtV(o.usd,'usd'):'—'}</td></tr>`).join('');
+}
+function drawRecent(list){
+  document.getElementById('recent').innerHTML=`<thead><tr><th>日時 (JST)</th><th style="text-align:left">区分</th><th>token</th><th>Lv</th><th>BNB</th><th>USD</th></tr></thead><tbody>${tradeRows(list.slice(0,40),true)||'<tr><td class="empty">データがありません</td></tr>'}</tbody>`;
+}
+function drawSearch(){
+  const q=document.getElementById('q').value.trim().replace(/^#/,'');
+  const el=document.getElementById('qResult');
+  if(!q){el.innerHTML='<p class="empty">tokenIdを入れると、そのNFTの売買履歴を表示します。</p>';return}
+  const hit=rows.filter(o=>o.token===q&&(o.type==='manekineko'||o.type==='genesis'));
+  if(!hit.length){el.innerHTML=`<p class="empty">#${esc(q)} の成約はまだ記録されていません。</p>`;return}
+  const first=hit[hit.length-1],last=hit[0];
+  el.innerHTML=`<p class="hint" style="padding-inline:14px">${esc(last.seg)} · ${hit.length}回売買 · 初回 ${fmtV(first.bnb,'bnb')} → 直近 ${fmtV(last.bnb,'bnb')} ${hit.length>1?chg(pct(last.bnb,first.bnb)):''}</p><table><thead><tr><th>日時 (JST)</th><th>token</th><th>Lv</th><th>BNB</th><th>USD</th></tr></thead><tbody>${tradeRows(hit,false)}</tbody></table>`;
+}
+document.getElementById('q').addEventListener('input',drawSearch);
+
+/* ------------ render */
+function render(){
+  drawControls();
+  const list=scoped();
+  drawKpis(list);
+  drawPrice(list);
+  drawSegTable();
+  drawLevel();
+  drawRecent(list);
+  drawSearch();
+  document.getElementById('segHint').textContent=S.seg?`「${S.seg}」で絞り込み中。もう一度選ぶと解除します。`:'行を選ぶと、上のチャートと指標がその区分に絞り込まれます。';
+}
+const m=document.getElementById('meta');
+const built=D.lastRun||D.built;
+m.innerHTML=`最終取得 <span class="mono">${built?fmtTime(built):'—'}</span> JST · 記録 <span class="mono">${rows.length.toLocaleString()}</span> 件${D.siteTotal?` / サイト表示 <span class="mono">${D.siteTotal.toLocaleString()}</span> 件`:''}`;
+document.getElementById('foot').textContent='データ: manekineko.syfu.io/activity の成約履歴を1日1回取得。USDは成約時点の表示値。日付の区切りは日本時間。';
+render();
+let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>Object.values(charts).forEach(c=>c.resize()),120)});
+const rerender=()=>render();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',rerender);
+new MutationObserver(rerender).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+})();
+</script>
