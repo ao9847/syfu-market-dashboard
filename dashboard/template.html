@@ -1,196 +1,249 @@
 <title>SyFu Market Watch</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+JP:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+JP:wght@400;500;700&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
 <style>
 :root{
-  --bg:#f4f5f7; --surface:#ffffff; --surface-2:#eef0f3; --ink:#14171c; --ink-2:#4a5160; --muted:#7b8392;
-  --line:#e2e5ea; --grid:#eceef2; --accent:#9a6a0c; --accent-soft:#f6ecd6;
-  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --up:#0b8a0b; --down:#c93434;
+  color-scheme:dark;
+  --bg:#0b0e12; --panel:#12161c; --panel-2:#181d25; --hover:#1d232d; --line:#222935; --line-2:#2c3441;
+  --ink:#e9edf2; --ink-2:#a3adbb; --muted:#6c7686;
+  --up:#18c07a; --down:#f0474f; --gold:#e8b44a; --gold-soft:rgba(232,180,74,.12);
+  --blue:#4c8ff0; --orange:#e3703c; --aqua:#22b389;
   --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
   --sans:"IBM Plex Sans JP","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    color-scheme:dark;
-    --bg:#101217; --surface:#191c22; --surface-2:#22262e; --ink:#f1f2f4; --ink-2:#b8bec9; --muted:#858c99;
-    --line:#2a2f38; --grid:#23272f; --accent:#e0ae45; --accent-soft:#3a2f17;
-    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --up:#3cc23c; --down:#ef6a6a;
-  }
-}
-:root[data-theme="dark"]{
-  color-scheme:dark;
-  --bg:#101217; --surface:#191c22; --surface-2:#22262e; --ink:#f1f2f4; --ink-2:#b8bec9; --muted:#858c99;
-  --line:#2a2f38; --grid:#23272f; --accent:#e0ae45; --accent-soft:#3a2f17;
-  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --up:#3cc23c; --down:#ef6a6a;
+  --top:env(safe-area-inset-top,0px);
 }
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.55;margin:0}
-.wrap{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:20px 48px;display:flex;flex-direction:column;gap:16px}
-.num,.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
-header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 24px}
-header.top h1{font-size:22px;font-weight:700;margin:0;letter-spacing:.01em;text-wrap:balance}
-header.top h1 .coin{display:inline-block;width:14px;height:18px;border-radius:50%/50%;background:var(--accent);margin-right:10px;vertical-align:-2px;box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--accent) 60%,#fff)}
-.meta{color:var(--muted);font-size:12px}
-.controls{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(8px);padding-block:8px;margin-block:-8px}
-.seg{display:inline-flex;background:var(--surface-2);border-radius:8px;padding:3px;gap:2px;flex-wrap:wrap}
-.seg button{font:inherit;font-size:13px;border:0;background:transparent;color:var(--ink-2);padding:5px 11px;border-radius:6px;cursor:pointer}
-.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);font-weight:500;box-shadow:0 1px 2px rgba(0,0,0,.08)}
-.seg button:focus-visible,.chip:focus-visible,input:focus-visible,tr[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-.segpill{display:inline-flex;align-items:center;gap:6px;background:var(--accent-soft);color:var(--ink);border-radius:999px;padding:4px 6px 4px 12px;font-size:13px}
-.segpill button{border:0;background:transparent;color:var(--ink-2);cursor:pointer;font-size:15px;line-height:1;padding:2px 6px;border-radius:999px}
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
-@media (max-width:520px){.kpi:last-child:nth-child(odd){grid-column:1/-1}}
-.kpi{background:var(--surface);padding:12px 14px;display:flex;flex-direction:column;gap:2px;min-width:0}
-.kpi .lab{font-size:11px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
-.kpi .val{font-family:var(--mono);font-size:20px;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.kpi .sub{font-size:12px;color:var(--ink-2);font-family:var(--mono)}
-.up{color:var(--up)} .down{color:var(--down)}
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 14px 10px;min-width:0}
-.panel h2{font-size:14px;font-weight:700;margin:0 0 2px}
-.panel .hint{font-size:12px;color:var(--muted);margin:0 0 8px}
-.chart{width:100%;height:300px}
-.chart.short{height:150px}
-.grid2{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px}
-@media (max-width:860px){.grid2{grid-template-columns:minmax(0,1fr)}}
-.tbl{overflow-x:auto;margin-inline:-14px}
-table{border-collapse:collapse;width:100%;font-size:13px}
-th,td{padding:7px 10px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--grid)}
-th{font-size:11px;color:var(--muted);font-weight:500;letter-spacing:.04em;position:sticky;top:0;background:var(--surface);cursor:pointer;user-select:none}
+html,body{background:var(--bg)}
+body{color:var(--ink);font-family:var(--sans);font-size:13px;line-height:1.5;margin:0;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit}
+.mono,.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.up{color:var(--up)} .down{color:var(--down)} .flat{color:var(--muted)}
+:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+
+/* top bar */
+.topbar{position:sticky;top:var(--top);z-index:20;background:var(--bg);border-bottom:1px solid var(--line)}
+.topbar .in{display:flex;align-items:center;gap:20px;padding-inline:16px;height:52px;max-width:1440px;margin:0 auto}
+.brand{display:flex;align-items:center;gap:8px;font-weight:700;letter-spacing:.02em;white-space:nowrap;font-size:14px}
+.brand i{width:10px;height:13px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 2px rgba(232,180,74,.25)}
+.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{border:0;background:none;color:var(--ink-2);padding:15px 12px 13px;border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;font-weight:500}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--gold)}
+.tabs button:hover{color:var(--ink)}
+.updated{color:var(--muted);font-size:11px;white-space:nowrap}
+@media (max-width:760px){.updated{display:none}.brand span{display:none}.topbar .in{gap:8px}}
+
+/* layout */
+.layout{display:grid;grid-template-columns:248px minmax(0,1fr);gap:12px;max-width:1440px;margin:0 auto;padding-inline:12px;padding-block:12px 40px}
+.layout.nofilter{grid-template-columns:minmax(0,1fr)}
+.layout.nofilter .side{display:none}
+.main{display:flex;flex-direction:column;gap:12px;min-width:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:6px;min-width:0}
+.card-h{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.card-h h2{font-size:13px;font-weight:700;margin:0;letter-spacing:.02em}
+.card-h .sub{color:var(--muted);font-size:11px}
+
+/* sidebar */
+.side{position:sticky;top:calc(var(--top) + 64px);align-self:start;max-height:calc(100vh - 76px - var(--top));display:flex;flex-direction:column}
+.side-h{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.side-h b{font-size:12px;letter-spacing:.12em}
+.side-h .res{font-family:var(--mono);font-size:11px;color:var(--ink-2);margin-left:auto}
+.side-body{overflow-y:auto;flex:1;overscroll-behavior:contain}
+.fg{border-bottom:1px solid var(--line)}
+.fg>summary{list-style:none;display:flex;align-items:center;gap:8px;padding:11px 14px;cursor:pointer;font-size:11px;letter-spacing:.12em;color:var(--ink-2);font-weight:500;user-select:none}
+.fg>summary::-webkit-details-marker{display:none}
+.fg>summary::after{content:"";width:6px;height:6px;border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);transform:rotate(45deg);margin:-3px 2px 0 auto;transition:transform .15s}
+.fg[open]>summary::after{transform:rotate(-135deg);margin-top:3px}
+.fg>summary .sel{background:var(--gold);color:#1a1405;font-family:var(--mono);font-size:10px;font-weight:600;border-radius:9px;padding:0 6px;letter-spacing:0}
+.opts{padding:0 8px 10px;display:flex;flex-direction:column}
+.opt{display:flex;align-items:center;gap:10px;padding:6px;border-radius:4px;cursor:pointer;font-size:12.5px}
+.opt:hover{background:var(--hover)}
+.opt input{appearance:none;-webkit-appearance:none;width:15px;height:15px;border:1.5px solid var(--line-2);border-radius:3px;margin:0;display:grid;place-items:center;flex:none;background:var(--panel-2);cursor:pointer}
+.opt input:checked{background:var(--gold);border-color:var(--gold)}
+.opt input:checked::after{content:"";width:4px;height:8px;border:solid #1a1405;border-width:0 2px 2px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.opt input:indeterminate{border-color:var(--gold)}
+.opt input:indeterminate::after{content:"";width:7px;height:2px;background:var(--gold)}
+.opt .lab{flex:1;min-width:0}
+.opt .n{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.opt.zero{opacity:.4}
+.opt.grp{font-weight:700;letter-spacing:.06em;margin-top:4px}
+.opt.sub{padding-left:31px}
+.side-f{padding:10px 14px;border-top:1px solid var(--line);display:flex;gap:8px}
+.btn{border:1px solid var(--line-2);background:var(--panel-2);border-radius:4px;padding:6px 12px;cursor:pointer;font-size:12px;color:var(--ink-2)}
+.btn:hover{color:var(--ink);border-color:var(--muted)}
+.btn.primary{background:var(--gold);border-color:var(--gold);color:#1a1405;font-weight:700;flex:1}
+.side-close,.fbtn,.sheet-bg{display:none}
+
+@media (max-width:900px){
+  .layout{grid-template-columns:minmax(0,1fr);padding-inline:8px}
+  .side{position:fixed;left:0;right:0;bottom:0;top:auto;max-height:82vh;z-index:40;border-radius:12px 12px 0 0;transform:translateY(105%);transition:transform .22s ease;padding-bottom:env(safe-area-inset-bottom,0px)}
+  .side.open{transform:none}
+  .sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:39}
+  .sheet-bg.open{display:block}
+  .side-close{display:inline-block}
+  .fbtn{display:inline-flex}
+  .fbtn[hidden]{display:none}
+}
+
+/* ticker */
+.ticker{padding:14px 16px;display:flex;flex-direction:column;gap:12px}
+.t-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.t-name{font-size:17px;font-weight:700;letter-spacing:.01em}
+.t-name .cnt{font-size:11px;color:var(--muted);font-weight:400;font-family:var(--mono);margin-left:8px}
+.fbtn{align-items:center;gap:6px;margin-left:auto;border:1px solid var(--line-2);background:var(--panel-2);border-radius:4px;padding:5px 10px;cursor:pointer;font-size:12px}
+.fbtn b{background:var(--gold);color:#1a1405;border-radius:8px;padding:0 5px;font-family:var(--mono);font-size:10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:4px;background:var(--gold-soft);color:var(--gold);border:1px solid rgba(232,180,74,.35);border-radius:4px;padding:2px 4px 2px 8px;font-size:11.5px;cursor:pointer}
+.chip:hover{border-color:var(--gold)}
+.chip::after{content:"×";color:var(--ink-2);font-size:13px;line-height:1;padding:0 3px}
+.chip.clear{background:none;border-color:var(--line-2);color:var(--ink-2);padding-right:8px}
+.chip.clear::after{content:none}
+.t-main{display:flex;align-items:flex-end;gap:10px 28px;flex-wrap:wrap}
+.price{display:flex;flex-direction:column;gap:2px}
+.price .big{font-family:var(--mono);font-size:30px;font-weight:600;line-height:1.1;letter-spacing:-.01em}
+.price .small{font-family:var(--mono);font-size:12px;color:var(--ink-2)}
+.stats{display:grid;grid-template-columns:repeat(6,auto);gap:6px 26px}
+.stat{display:flex;flex-direction:column;min-width:0}
+.stat .k{font-size:10.5px;color:var(--muted);letter-spacing:.06em;white-space:nowrap}
+.stat .v{font-family:var(--mono);font-size:13px;font-weight:500;white-space:nowrap}
+@media (max-width:1180px){.stats{grid-template-columns:repeat(3,auto)}}
+@media (max-width:520px){.stats{grid-template-columns:repeat(2,minmax(0,1fr));width:100%}.price .big{font-size:26px}}
+
+/* chart */
+.ctools{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.seg{display:inline-flex;gap:2px}
+.seg button{border:0;background:none;color:var(--muted);padding:3px 8px;border-radius:3px;cursor:pointer;font-family:var(--mono);font-size:12px}
+.seg button[aria-pressed="true"]{color:var(--ink);background:var(--panel-2)}
+.seg button:hover{color:var(--ink)}
+.legend{display:flex;gap:14px;color:var(--ink-2);font-size:11px;align-items:center}
+.legend i{display:inline-block;width:14px;height:2px;background:var(--gold);vertical-align:middle;margin-right:5px}
+#priceChart{width:100%;height:440px}
+@media (max-width:620px){#priceChart{height:360px}}
+
+/* tables */
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%}
+th,td{padding:8px 12px;text-align:right;white-space:nowrap}
+th{font-size:10.5px;color:var(--muted);font-weight:500;letter-spacing:.06em;border-bottom:1px solid var(--line);cursor:pointer;user-select:none;position:sticky;top:0;background:var(--panel);z-index:1}
 th:first-child,td:first-child{text-align:left;padding-left:14px}
 th:last-child,td:last-child{padding-right:14px}
-td.num{font-family:var(--mono)}
-tbody tr[tabindex]{cursor:pointer}
-tbody tr[tabindex]:hover{background:var(--surface-2)}
-tbody tr.sel{background:var(--accent-soft)}
-th[aria-sort="descending"]::after{content:" ↓"} th[aria-sort="ascending"]::after{content:" ↑"}
-.tag{display:inline-block;font-size:11px;padding:1px 6px;border-radius:4px;background:var(--surface-2);color:var(--ink-2);margin-left:6px;vertical-align:1px}
-.tag.elite{background:var(--accent-soft);color:var(--accent)}
-.search{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
-.search input{font:inherit;font-family:var(--mono);background:var(--surface-2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:7px 10px;width:220px;max-width:100%}
-.filters{display:flex;flex-direction:column;gap:10px}
-.filters[hidden]{display:none!important}
-.fhead{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 16px}
-.fhead h2{margin:0}
-.fhead .count{font-family:var(--mono);font-size:12px;color:var(--ink-2)}
-.fhead button{font:inherit;font-size:12px;border:1px solid var(--line);background:transparent;color:var(--ink-2);border-radius:6px;padding:3px 10px;cursor:pointer}
-.fbody{display:flex;flex-direction:column;gap:10px}
-.fsum{font-size:12px;color:var(--ink-2)}
-.frow{display:grid;grid-template-columns:128px minmax(0,1fr);gap:6px 12px;align-items:start}
-@media (max-width:600px){.frow{grid-template-columns:minmax(0,1fr)}}
-.frow>.flab{font-size:11px;color:var(--muted);letter-spacing:.08em;padding-top:5px}
-.chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{font:inherit;font-size:12px;letter-spacing:.02em;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);border-radius:999px;padding:3px 10px;cursor:pointer;display:inline-flex;gap:6px;align-items:baseline}
-.chip .n{font-family:var(--mono);font-size:11px;color:var(--muted)}
-.chip[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--ink)}
-.chip.zero{opacity:.45}
-.chip.group{font-weight:700;letter-spacing:.08em}
-.lgroups{display:flex;flex-direction:column;gap:6px}
-.lgroup{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-.lgroup .chip.group{min-width:92px;justify-content:center}
-.empty{color:var(--muted);font-size:13px;padding:10px 0}
-.scroll{max-height:420px;overflow:auto}
-footer{color:var(--muted);font-size:12px}
-@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+td{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:12.5px;border-bottom:1px solid rgba(34,41,53,.6)}
+td.name{font-family:var(--sans);font-size:12.5px;font-weight:500;text-align:left}
+th[aria-sort="descending"]::after{content:" ▾";color:var(--ink-2)} th[aria-sort="ascending"]::after{content:" ▴";color:var(--ink-2)}
+#mkt tbody tr{cursor:pointer}
+#mkt tbody tr:hover{background:var(--hover)}
+#mkt tbody tr.sel{background:var(--gold-soft);box-shadow:inset 2px 0 0 var(--gold)}
+.pill{display:inline-block;font-family:var(--mono);font-size:12px;padding:1px 6px;border-radius:3px;min-width:66px;text-align:right}
+.pill.up{background:rgba(24,192,122,.12)} .pill.down{background:rgba(240,71,79,.12)}
+.tag{display:inline-block;font-family:var(--mono);font-size:10px;color:var(--gold);border:1px solid rgba(232,180,74,.4);border-radius:3px;padding:0 4px;margin-left:6px;vertical-align:1px}
+.mkt-scroll{max-height:520px;overflow:auto}
+.search{background:var(--panel-2);border:1px solid var(--line-2);border-radius:4px;color:var(--ink);font-family:var(--mono);font-size:12px;padding:5px 9px;width:170px;max-width:100%}
+.search::placeholder{color:var(--muted)}
+.row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+.row2.one{grid-template-columns:minmax(0,1fr)}
+@media (max-width:1100px){.row2{grid-template-columns:minmax(0,1fr)}}
+.tape-scroll{max-height:420px;overflow:auto}
+@media (max-width:560px){.tok{display:none}#tape th,#tape td{padding-inline:8px}}
+#levelChart{width:100%;height:380px}
+.empty{color:var(--muted);padding:18px 14px;font-size:12px;font-family:var(--sans)}
+.note{color:var(--muted);font-size:11px;padding:0 4px;margin:0}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
-<div class="wrap">
-  <header class="top">
-    <h1><span class="coin" aria-hidden="true"></span>SyFu Market Watch</h1>
-    <div class="meta" id="meta"></div>
-  </header>
+<header class="topbar"><div class="in">
+  <div class="brand"><i aria-hidden="true"></i><span>SyFu Market Watch</span></div>
+  <nav class="tabs" id="tabs" role="tablist" aria-label="種類"></nav>
+  <div class="updated" id="updated"></div>
+</div></header>
 
-  <div class="controls" role="toolbar" aria-label="フィルタ">
-    <div class="seg" id="typeSeg" aria-label="種類"></div>
-    <div class="seg" id="rangeSeg" aria-label="期間"></div>
-    <div class="seg" id="unitSeg" aria-label="通貨"></div>
-    <span id="segPill" hidden></span>
-  </div>
+<div class="layout" id="layout">
+  <aside class="side card" id="side" aria-label="フィルター">
+    <div class="side-h"><b>FILTER</b><span class="res" id="res"></span><button type="button" class="btn side-close" id="sideClose">閉じる</button></div>
+    <div class="side-body" id="sideBody"></div>
+    <div class="side-f"><button type="button" class="btn" id="fReset">リセット</button><button type="button" class="btn primary side-close" id="sideDone">結果を見る</button></div>
+  </aside>
+  <div class="sheet-bg" id="sheetBg"></div>
 
-  <section class="panel filters" id="filters" aria-label="絞り込み" hidden></section>
-
-  <section class="kpis" id="kpis" aria-label="主要指標"></section>
-
-  <section class="panel">
-    <h2 id="priceTitle">成約価格の推移</h2>
-    <p class="hint">点は1件ずつの成約、線は日ごとの中央値（JST）。</p>
-    <div class="chart" id="priceChart" role="img" aria-label="成約価格の推移"></div>
-    <div class="chart short" id="volChart" role="img" aria-label="日次出来高"></div>
-  </section>
-
-  <section class="panel">
-    <h2>相場表</h2>
-    <p class="hint" id="segHint">行を選ぶと、上のチャートと指標がその区分に絞り込まれます。</p>
-    <div class="tbl scroll"><table id="segTable"></table></div>
-  </section>
-
-  <div class="grid2">
-    <section class="panel" id="levelPanel">
-      <h2>レベルと価格</h2>
-      <p class="hint">MANEKINEKOの売却時レベル別の成約価格。</p>
-      <div class="chart" id="levelChart" role="img" aria-label="レベルと価格の散布図"></div>
+  <main class="main">
+    <section class="card ticker" aria-label="概要">
+      <div class="t-top">
+        <div class="t-name" id="tName"></div>
+        <button type="button" class="fbtn" id="fBtn">フィルター <b id="fBtnN" hidden></b></button>
+      </div>
+      <div class="chips" id="chips" hidden></div>
+      <div class="t-main">
+        <div class="price"><span class="big" id="tPrice">—</span><span class="small" id="tPriceSub"></span></div>
+        <div class="stats" id="stats"></div>
+      </div>
     </section>
-    <section class="panel">
-      <h2>tokenIdで検索</h2>
-      <div class="search"><input id="q" type="search" inputmode="numeric" placeholder="例: 7786" aria-label="tokenId"></div>
-      <div id="qResult" class="tbl"></div>
+
+    <section class="card">
+      <div class="card-h">
+        <div class="legend"><b style="color:var(--ink)">日足</b><span><i></i>7日中央値</span></div>
+        <div class="ctools">
+          <div class="seg" id="rangeSeg" aria-label="期間"></div>
+          <div class="seg" id="unitSeg" aria-label="通貨"></div>
+        </div>
+      </div>
+      <div id="priceChart" role="img" aria-label="日足ローソク足と出来高"></div>
     </section>
-  </div>
 
-  <section class="panel">
-    <h2>直近の成約</h2>
-    <div class="tbl scroll"><table id="recent"></table></div>
-  </section>
+    <section class="card">
+      <div class="card-h"><h2>マーケット</h2><span class="sub">行を選ぶとその区分だけを表示</span></div>
+      <div class="tw mkt-scroll"><table id="mkt"></table></div>
+    </section>
 
-  <footer id="foot"></footer>
+    <div class="row2" id="row2">
+      <section class="card">
+        <div class="card-h"><h2>約定履歴</h2><input class="search" id="q" type="search" inputmode="numeric" placeholder="tokenId で検索" aria-label="tokenIdで検索"></div>
+        <div class="tw tape-scroll" id="tape"></div>
+      </section>
+      <section class="card" id="levelCard">
+        <div class="card-h"><h2>レベル別の価格</h2><span class="sub">売却時レベル × 成約価格</span></div>
+        <div id="levelChart" role="img" aria-label="レベルと価格の散布図"></div>
+      </section>
+    </div>
+    <p class="note" id="foot"></p>
+  </main>
 </div>
 
 <script>window.__DATA__=/*__DATA__*/null;</script>
 <script>
 (function(){
-const D = window.__DATA__ || {cols:[],rows:[]};
-const C = {}; D.cols.forEach((c,i)=>C[c]=i);
-const JST = 9*3600;
-const rows = [];
-function buildRows(){ D.rows.forEach(r=>{
-  const o={}; D.cols.forEach((c,i)=>o[c]=r[i]);
-  o.day = Math.floor((o.t+JST)/86400); // JST day index
-  if(o.type==='manekineko'){
-    o.stage = o.level>=10?'PRIME':o.level>=3?'MINI':'POD';
-    const ed=(o.name.match(/^(.+?) × SyFu/)||[])[1];
-    o.edition = !ed?'STANDARD':/^1BLOCK/i.test(ed)?'1BLOCK STUDIO':ed.toUpperCase();
-    o.tags = [o.origin==='OG'?'OG':o.origin==='ORIGIN'?'ORIGIN':'NONE'].concat(o.talent==='elite'?['ELITE']:[]);
-    o.lin = o.lineage? cap(o.lineage):'NONE';
-    o.lgroup = LGROUP[o.lin]||(o.lineage?'OTHER':'NONE');
-  }
-  o.seg = segOf(o);
-  rows.push(o);
-}); rows.sort((a,b)=>b.t-a.t); }
-
+const D=window.__DATA__||{cols:[],rows:[]};
+const JST=9*3600, DAY=86400;
 const LINEAGES={ZENITH:['Genesis','Chronos','Nexus','Logos','Vector','Aura','Apex','Equinox'],LUNA:['Cobalt','Titanium','Nickel','Palladium','Rhodium','Iridium','Osmium','Chrome'],VEGA:['Jasper','Onyx','Zircon','Spinel','Garnet','Topaz','Beryl','Citrine'],NEBULA:['Basalt','Granite','Slate','Shale','Gneiss','Marble','Obsidian','Andesite']};
-const LGROUP={};Object.entries(LINEAGES).forEach(([g,l])=>l.forEach(x=>LGROUP[x]=g));
-buildRows();
-function cap(s){return s? s.charAt(0).toUpperCase()+s.slice(1):s}
-function segOf(o){
-  if(o.type==='manekineko'){
-    const parts=[cap(o.rarity)||'—'];
-    if(o.origin==='OG') parts.push('OG');
-    if(o.origin==='ORIGIN') parts.push('Origin');
-    if(o.lineage) parts.push(cap(o.lineage));
-    parts.push((o.rank||'').toUpperCase()||'—');
-    return parts.join(' ');
-  }
-  if(o.type==='genesis') return 'Genesis';
-  if(o.type==='breed_item') return o.name+' · '+(o.variant||'—');
-  return o.name + (o.rarity? ' · '+cap(o.rarity):'');
-}
+const cap=s=>s?s.charAt(0).toUpperCase()+s.slice(1):s;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
-const TYPES=[['manekineko','MANEKINEKO'],['genesis','Genesis'],['breed_item','ブリードアイテム'],['excavation_right','Right Scroll'],['all','すべて']];
-const RANGES=[[30,'30日'],[90,'90日'],[0,'全期間']];
-const UNITS=[['bnb','BNB'],['usd','USD']];
-const S={type:'manekineko',range:90,unit:'bnb',seg:null,sort:{k:'n30',d:-1},f:{}};
-const FGROUPS={
+/* ---------- data */
+const rows=[];
+D.rows.forEach(r=>{
+  const o={};D.cols.forEach((c,i)=>o[c]=r[i]);
+  o.day=Math.floor((o.t+JST)/DAY);
+  if(o.type==='manekineko'){
+    o.stage=o.level>=10?'PRIME':o.level>=3?'MINI':'POD';
+    const ed=(o.name.match(/^(.+?) × SyFu/)||[])[1];
+    o.edition=!ed?'STANDARD':/^1BLOCK/i.test(ed)?'1BLOCK STUDIO':ed.toUpperCase();
+    o.kind=o.origin==='OG'?'OG':o.origin==='ORIGIN'?'ORIGIN':'NONE';
+    o.tags=[o.kind].concat(o.talent==='elite'?['ELITE']:[]);
+    o.lin=o.lineage?cap(o.lineage):'NONE';
+    const p=[{common:'C',uncommon:'UC',rare:'R'}[o.rarity]||cap(o.rarity)];
+    if(o.kind!=='NONE')p.push(o.kind==='OG'?'OG':'Origin');
+    if(o.lineage)p.push(o.lin);
+    p.push((o.rank||'').toUpperCase());
+    o.seg=p.join(' ');
+  } else if(o.type==='genesis') o.seg='Genesis';
+  else if(o.type==='breed_item') o.seg=o.name+' · '+(o.variant||'—');
+  else o.seg=o.name;
+  rows.push(o);
+});
+rows.sort((a,b)=>b.t-a.t);
+
+const TYPES=[['manekineko','MANEKINEKO'],['genesis','GENESIS'],['breed_item','ITEMS'],['excavation_right','RIGHT SCROLL']];
+const FG={
   manekineko:[
     ['rarity','RARITY',['COMMON','UNCOMMON','RARE'],o=>[(o.rarity||'').toUpperCase()]],
     ['type','TYPE',['NONE','OG','ORIGIN','ELITE'],o=>o.tags],
@@ -199,245 +252,254 @@ const FGROUPS={
     ['edition','EDITION',['STANDARD','KDDI','LUPIN THE IIIRD','SNPIT','1BLOCK STUDIO'],o=>[o.edition]],
     ['lineage','LINEAGE',null,o=>[o.lin]],
   ],
-  breed_item:[
-    ['variant','VARIANT',['NORMAL','WHITE','COLLAB'],o=>[o.variant]],
-  ],
+  breed_item:[['variant','VARIANT',['NORMAL','WHITE','COLLAB'],o=>[o.variant]]],
 };
-try{const s=JSON.parse(localStorage.getItem('smw')||'{}'); ['type','range','unit'].forEach(k=>{if(s[k]!==undefined)S[k]=s[k]}); if(s.f) Object.entries(s.f).forEach(([k,v])=>S.f[k]=new Set(v));}catch(e){}
-function persist(){try{localStorage.setItem('smw',JSON.stringify({type:S.type,range:S.range,unit:S.unit,f:Object.fromEntries(Object.entries(S.f).map(([k,v])=>[k,[...v]]))}))}catch(e){}}
-function passF(o,skip){
-  const gs=FGROUPS[o.type]; if(!gs||S.type!==o.type) return true;
-  for(const [k,,,get] of gs){ if(k===skip) continue; const sel=S.f[o.type+'.'+k]; if(sel&&sel.size&&!get(o).some(v=>sel.has(v))) return false; }
+const SHORT={COMMON:'C',UNCOMMON:'UC',RARE:'R'};
+
+/* ---------- state */
+const S={type:'manekineko',range:90,unit:'bnb',seg:null,f:{},sort:{k:'n30',d:-1},open:{}};
+try{const s=JSON.parse(localStorage.getItem('smw2')||'{}');['type','range','unit'].forEach(k=>{if(s[k]!==undefined)S[k]=s[k]});if(s.f)for(const k in s.f)S.f[k]=new Set(s.f[k]);if(s.open)S.open=s.open;}catch(e){}
+function save(){try{localStorage.setItem('smw2',JSON.stringify({type:S.type,range:S.range,unit:S.unit,open:S.open,f:Object.fromEntries(Object.entries(S.f).map(([k,v])=>[k,[...v]]))}))}catch(e){}}
+const fk=k=>S.type+'.'+k;
+const fset=k=>S.f[fk(k)]||(S.f[fk(k)]=new Set());
+function pass(o,skip){
+  const gs=FG[o.type];if(!gs)return true;
+  for(const [k,,,get] of gs){if(k===skip)continue;const s=S.f[o.type+'.'+k];if(s&&s.size&&!get(o).some(v=>s.has(v)))return false}
   return true;
 }
+const base=()=>rows.filter(o=>o.type===S.type);
+const filtered=()=>base().filter(o=>pass(o));
+const scoped=()=>filtered().filter(o=>!S.seg||o.seg===S.seg);
+const activeCount=()=>(FG[S.type]||[]).reduce((n,[k])=>n+((S.f[fk(k)]||new Set()).size),0);
 
+/* ---------- format */
+const V=o=>S.unit==='usd'?o.usd:o.bnb;
+function fmt(v,u){u=u||S.unit;if(v==null||!isFinite(v))return '—';if(u==='usd')return '$'+v.toLocaleString('en-US',{minimumFractionDigits:v<100?2:0,maximumFractionDigits:v<100?2:0});return v>=10?v.toFixed(2):v>=1?v.toFixed(3):v.toFixed(4)}
+const unitLab=()=>S.unit==='usd'?'USD':'BNB';
+const med=a=>{if(!a.length)return NaN;const s=[...a].sort((x,y)=>x-y),m=s.length>>1;return s.length%2?s[m]:(s[m-1]+s[m])/2};
+const pct=(a,b)=>isFinite(a)&&isFinite(b)&&b>0?(a/b-1)*100:NaN;
+const cls=p=>!isFinite(p)?'flat':p>0.05?'up':p<-0.05?'down':'flat';
+const pctTxt=p=>!isFinite(p)?'—':(p>0?'+':'')+p.toFixed(2)+'%';
+const pad=n=>String(n).padStart(2,'0');
+const dt=t=>{const x=new Date((t+JST)*1000);return {y:x.getUTCFullYear(),m:x.getUTCMonth()+1,d:x.getUTCDate(),h:x.getUTCHours(),mi:x.getUTCMinutes()}};
+const fTime=t=>{const a=dt(t);return a.y+'/'+pad(a.m)+'/'+pad(a.d)+' '+pad(a.h)+':'+pad(a.mi)};
+const fShort=t=>{const a=dt(t);return pad(a.m)+'/'+pad(a.d)+' '+pad(a.h)+':'+pad(a.mi)};
+const today=()=>Math.floor((Date.now()/1000+JST)/DAY);
 const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-const fmtDay=d=>{const x=new Date(d*86400000);return (x.getUTCMonth()+1)+'/'+x.getUTCDate()};
-const fmtTime=t=>{const x=new Date((t+JST)*1000);const p=n=>String(n).padStart(2,'0');return x.getUTCFullYear()+'/'+p(x.getUTCMonth()+1)+'/'+p(x.getUTCDate())+' '+p(x.getUTCHours())+':'+p(x.getUTCMinutes())};
-const val=o=>S.unit==='usd'?(o.usd??NaN):o.bnb;
-function fmtV(v,unit){unit=unit||S.unit; if(v==null||isNaN(v))return '—'; return unit==='usd'? '$'+v.toLocaleString('en-US',{maximumFractionDigits:v<100?2:0}) : (v>=10?v.toFixed(2):v>=1?v.toFixed(3):v.toFixed(4))+' BNB'}
-function median(a){if(!a.length)return NaN;const s=[...a].sort((x,y)=>x-y),m=s.length>>1;return s.length%2?s[m]:(s[m-1]+s[m])/2}
-function pct(a,b){return (isFinite(a)&&isFinite(b)&&b>0)?(a/b-1)*100:NaN}
-function chg(p){if(!isFinite(p))return '<span class="meta">—</span>';const c=p>=0?'up':'down';return `<span class="${c}">${p>=0?'▲':'▼'} ${Math.abs(p).toFixed(1)}%</span>`}
-const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
-const today = Math.floor((Date.now()/1000+JST)/86400);
-function inType(o){return (S.type==='all'||o.type===S.type)&&passF(o)}
-function scoped(){return rows.filter(o=>inType(o)&&(!S.seg||o.seg===S.seg))}
+/* ---------- tabs */
+function drawTabs(){
+  const el=document.getElementById('tabs');
+  el.innerHTML=TYPES.map(([v,l])=>`<button type="button" role="tab" data-v="${v}" aria-selected="${S.type===v}">${l}</button>`).join('');
+  el.onclick=e=>{const b=e.target.closest('button');if(!b||b.dataset.v===S.type)return;S.type=b.dataset.v;S.seg=null;save();render()};
+}
 
-/* ------------ filter panel */
-function drawFilters(){
-  const el=document.getElementById('filters'); const gs=FGROUPS[S.type];
-  if(!gs){el.hidden=true;return} el.hidden=false;
-  const base=rows.filter(o=>o.type===S.type);
-  const matched=base.filter(o=>passF(o)).length;
-  const active=gs.some(([k])=>S.f[S.type+'.'+k]&&S.f[S.type+'.'+k].size);
-  const chip=(k,v,n,cls)=>{const on=S.f[S.type+'.'+k]&&S.f[S.type+'.'+k].has(v);return `<button type="button" class="chip ${cls||''} ${n?'':'zero'}" data-k="${k}" data-v="${esc(v)}" aria-pressed="${!!on}">${esc(v)}<span class="n">${n}</span></button>`};
-  const counts=(k,get)=>{const c=new Map();base.filter(o=>passF(o,k)).forEach(o=>get(o).forEach(v=>c.set(v,(c.get(v)||0)+1)));return c};
-  const open=S.fopen!==undefined?S.fopen:innerWidth>700;
-  const summary=gs.map(([k,label])=>{const v=S.f[S.type+'.'+k];if(!v||!v.size)return null;let items=[...v];
-    if(k==='lineage'){Object.entries(LINEAGES).forEach(([g,l])=>{if(l.every(x=>v.has(x))){items=items.filter(x=>!l.includes(x));items.push(g+'（全系統）')}})}
-    return label+': '+items.join(', ')}).filter(Boolean).join(' ／ ')||'条件なし';
-  let html=`<div class="fhead"><h2>${S.type==='manekineko'?'MANEKINEKO フィルター':'アイテムの種類'}</h2><span class="count">${matched.toLocaleString()} / ${base.length.toLocaleString()} 件が該当</span><span style="display:flex;gap:6px">${active?'<button type="button" id="fclear">すべて解除</button>':''}<button type="button" id="ftoggle" aria-expanded="${open}">${open?'閉じる':'条件を開く'}</button></span></div>`;
-  if(!open){ el.innerHTML=html+`<div class="fsum">${esc(summary)}</div>`; bindF(el,gs); return; }
-  html+='<div class="fbody">';
+/* ---------- sidebar */
+function drawSide(){
+  const gs=FG[S.type];
+  document.getElementById('layout').classList.toggle('nofilter',!gs);
+  document.getElementById('fBtn').hidden=!gs;
+  if(!gs)return;
+  const b=base();
+  const counts=(k,get)=>{const c=new Map();b.forEach(o=>{if(pass(o,k))get(o).forEach(v=>c.set(v,(c.get(v)||0)+1))});return c};
+  const opt=(k,v,n,extra)=>`<label class="opt ${n?'':'zero'} ${extra||''}"><input type="checkbox" data-k="${k}" data-v="${esc(v)}" ${fset(k).has(v)?'checked':''}><span class="lab">${esc(v)}</span><span class="n">${n}</span></label>`;
+  let h='';
   for(const [k,label,opts,get] of gs){
-    const c=counts(k,get);
+    const c=counts(k,get);const n=fset(k).size;
+    const isOpen=S.open[fk(k)]!==undefined?S.open[fk(k)]:(k!=='lineage'&&k!=='edition')||n>0;
+    let body='';
     if(k==='lineage'){
-      const sel=S.f[S.type+'.lineage']||new Set();
-      const groups=Object.entries(LINEAGES).map(([g,list])=>{
-        const all=list.every(x=>sel.has(x)); const gn=list.reduce((s,x)=>s+(c.get(x)||0),0);
-        return `<div class="lgroup"><button type="button" class="chip group ${gn?'':'zero'}" data-group="${g}" aria-pressed="${all}">${g}<span class="n">${gn}</span></button>${list.map(x=>chip(k,x,c.get(x)||0)).join('')}</div>`}).join('');
-      html+=`<div class="frow"><span class="flab">${label}</span><div class="lgroups"><div class="lgroup">${chip(k,'NONE',c.get('NONE')||0)}<span class="meta">系統なし（OGなど）</span></div>${groups}</div></div>`;
-    } else {
-      html+=`<div class="frow"><span class="flab">${label}${k==='stage'?' <span title="売却時レベルから判定: Lv1-2 POD / 3-9 MINI / 10+ PRIME">*</span>':''}</span><div class="chips">${opts.map(v=>chip(k,v,c.get(v)||0)).join('')}</div></div>`;
-    }
+      body+=opt(k,'NONE',c.get('NONE')||0);
+      for(const [g,list] of Object.entries(LINEAGES)){
+        const on=list.filter(x=>fset(k).has(x)).length;const gn=list.reduce((s,x)=>s+(c.get(x)||0),0);
+        body+=`<label class="opt grp ${gn?'':'zero'}"><input type="checkbox" data-group="${g}" ${on===list.length?'checked':''} data-ind="${on>0&&on<list.length?1:0}"><span class="lab">${g}</span><span class="n">${gn}</span></label>`;
+        body+=list.map(x=>opt(k,x,c.get(x)||0,'sub')).join('');
+      }
+    } else body=opts.map(v=>opt(k,v,c.get(v)||0)).join('');
+    h+=`<details class="fg" data-k="${k}" ${isOpen?'open':''}><summary>${label}${n?`<span class="sel">${n}</span>`:''}</summary><div class="opts">${body}</div></details>`;
   }
-  html+='</div>';
-  if(S.type==='manekineko') html+=`<p class="meta" style="margin:0">* STAGE は売却時レベルから判定（Lv1–2 POD / 3–9 MINI / 10+ PRIME）。同じ項目内は「いずれか」、項目どうしは「すべて」で絞り込みます。</p>`;
-  el.innerHTML=html;
-  bindF(el,gs);
+  if(S.type==='manekineko') h+=`<p class="note" style="padding:10px 14px">STAGE は売却時レベルから判定（Lv1–2 POD / 3–9 MINI / 10+ PRIME）。同じ項目内は OR、項目どうしは AND で絞り込みます。</p>`;
+  const body=document.getElementById('sideBody');const st=body.scrollTop;
+  body.innerHTML=h;body.scrollTop=st;
+  body.querySelectorAll('input[data-ind="1"]').forEach(i=>i.indeterminate=true);
+  document.getElementById('res').textContent=filtered().length.toLocaleString()+' / '+b.length.toLocaleString()+' 件';
 }
-function bindF(el,gs){
-  el.onclick=e=>{
-    if(e.target.id==='ftoggle'){const o=e.target.getAttribute('aria-expanded')==='true';S.fopen=!o;drawFilters();return}
-    if(e.target.id==='fclear'){gs.forEach(([k])=>delete S.f[S.type+'.'+k]);S.seg=null;persist();render();return}
-    const b=e.target.closest('button.chip'); if(!b) return;
-    const key=S.type+'.'+(b.dataset.group?'lineage':b.dataset.k);
-    const set=S.f[key]||(S.f[key]=new Set());
-    if(b.dataset.group){const list=LINEAGES[b.dataset.group];const all=list.every(x=>set.has(x));list.forEach(x=>all?set.delete(x):set.add(x));}
-    else set.has(b.dataset.v)?set.delete(b.dataset.v):set.add(b.dataset.v);
-    S.seg=null; persist(); render();
-  };
-}
-function inRange(o){return !S.range||o.day>today-S.range}
+document.getElementById('sideBody').addEventListener('change',e=>{
+  const i=e.target;if(i.tagName!=='INPUT')return;
+  if(i.dataset.group){const l=LINEAGES[i.dataset.group],s=fset('lineage');const all=l.every(x=>s.has(x));l.forEach(x=>all?s.delete(x):s.add(x))}
+  else{const s=fset(i.dataset.k);i.checked?s.add(i.dataset.v):s.delete(i.dataset.v)}
+  S.seg=null;save();render();
+});
+document.getElementById('sideBody').addEventListener('toggle',e=>{const d=e.target;if(d.dataset&&d.dataset.k){S.open[fk(d.dataset.k)]=d.open;save()}},true);
+document.getElementById('fReset').onclick=()=>{(FG[S.type]||[]).forEach(([k])=>delete S.f[fk(k)]);S.seg=null;save();render()};
+const sheet=on=>{document.getElementById('side').classList.toggle('open',on);document.getElementById('sheetBg').classList.toggle('open',on)};
+document.getElementById('fBtn').onclick=()=>sheet(true);
+['sideClose','sideDone','sheetBg'].forEach(id=>document.getElementById(id).onclick=()=>sheet(false));
 
-/* ------------ controls */
-function segButtons(el,items,key,onSel){
-  el.innerHTML=items.map(([v,l])=>`<button type="button" data-v="${v}" aria-pressed="${S[key]==v}">${l}</button>`).join('');
-  el.onclick=e=>{const b=e.target.closest('button');if(!b)return;let v=b.dataset.v;if(key==='range')v=+v;S[key]=v;if(onSel)onSel();persist();render();};
-}
-function drawControls(){
-  segButtons(document.getElementById('typeSeg'),TYPES,'type',()=>{S.seg=null});
-  segButtons(document.getElementById('rangeSeg'),RANGES,'range');
-  segButtons(document.getElementById('unitSeg'),UNITS,'unit');
-  const pill=document.getElementById('segPill');
-  if(S.seg){pill.hidden=false;pill.className='segpill';pill.innerHTML=`${esc(S.seg)} <button type="button" aria-label="区分の絞り込みを解除">×</button>`;pill.querySelector('button').onclick=()=>{S.seg=null;render()};}
-  else pill.hidden=true;
-}
-
-/* ------------ KPIs */
-function drawKpis(list){
-  const now=Date.now()/1000, d=86400;
-  const w=(a,b)=>list.filter(o=>o.t>now-b*d&&o.t<=now-a*d);
-  const l7=w(0,7), p7=w(7,14), l30=w(0,30);
-  const m7=median(l7.map(val)), mp=median(p7.map(val));
-  const vol7=l7.reduce((s,o)=>s+(val(o)||0),0), volp=p7.reduce((s,o)=>s+(val(o)||0),0);
+/* ---------- ticker */
+function drawTicker(list){
+  const label=TYPES.find(t=>t[0]===S.type)[1];
+  const n=activeCount();
+  document.getElementById('tName').innerHTML=esc(S.seg||label)+`<span class="cnt">${list.length.toLocaleString()} trades</span>`;
+  const fb=document.getElementById('fBtnN');fb.hidden=!n;fb.textContent=n;
+  const chips=[];
+  if(S.seg)chips.push(`<button type="button" class="chip" data-seg="1">区分: ${esc(S.seg)}</button>`);
+  (FG[S.type]||[]).forEach(([k])=>{
+    const s=S.f[fk(k)];if(!s||!s.size)return;let items=[...s];
+    if(k==='lineage')Object.entries(LINEAGES).forEach(([g,l])=>{if(l.every(x=>s.has(x))){items=items.filter(x=>!l.includes(x));chips.push(`<button type="button" class="chip" data-group="${g}">${g}</button>`)}});
+    items.forEach(v=>chips.push(`<button type="button" class="chip" data-k="${k}" data-v="${esc(v)}">${esc(SHORT[v]||v)}</button>`));
+  });
+  if(chips.length>1)chips.push(`<button type="button" class="chip clear" data-all="1">すべて解除</button>`);
+  const ce=document.getElementById('chips');ce.hidden=!chips.length;ce.innerHTML=chips.join('');
+  ce.onclick=e=>{const c=e.target.closest('.chip');if(!c)return;
+    if(c.dataset.all){(FG[S.type]||[]).forEach(([k])=>delete S.f[fk(k)]);S.seg=null}
+    else if(c.dataset.seg)S.seg=null;
+    else if(c.dataset.group)LINEAGES[c.dataset.group].forEach(x=>fset('lineage').delete(x));
+    else fset(c.dataset.k).delete(c.dataset.v);
+    save();render()};
+  const now=Date.now()/1000;const w=(a,b)=>list.filter(o=>o.t>now-b*DAY&&o.t<=now-a*DAY).map(V).filter(isFinite);
   const last=list[0];
-  const k=[
-    ['直近の成約', last?fmtV(val(last)):'—', last?esc(last.seg)+' · '+fmtTime(last.t).slice(5):''],
-    ['7日 中央値', fmtV(m7), '前週比 '+chg(pct(m7,mp))],
-    ['7日 出来高', fmtV(vol7), '前週比 '+chg(pct(vol7,volp))],
-    ['7日 件数', l7.length+' 件', '前週 '+p7.length+' 件'],
-    ['30日 件数', l30.length+' 件', '累計 '+list.length+' 件'],
+  const m7=med(w(0,7)),mp7=med(w(7,14)),m30=med(w(0,30)),mp30=med(w(30,60));
+  const l30=w(0,30),v7=w(0,7).reduce((s,x)=>s+x,0),vp7=w(7,14).reduce((s,x)=>s+x,0);
+  const pe=document.getElementById('tPrice');
+  pe.textContent=last?fmt(V(last))+' '+unitLab():'—';pe.className='big '+cls(pct(m7,mp7));
+  document.getElementById('tPriceSub').innerHTML=last?`直近約定 ${fShort(last.t)}${S.unit==='bnb'&&last.usd!=null?' · ≈ '+fmt(last.usd,'usd'):''}${!S.seg?' · '+esc(last.seg):''}`:'該当する取引がありません';
+  const st=[
+    ['7D 中央値',fmt(m7)],
+    ['7D 変動',`<span class="${cls(pct(m7,mp7))}">${pctTxt(pct(m7,mp7))}</span>`],
+    ['30D 変動',`<span class="${cls(pct(m30,mp30))}">${pctTxt(pct(m30,mp30))}</span>`],
+    ['30D 安値 / 高値',l30.length?fmt(Math.min(...l30))+' / '+fmt(Math.max(...l30)):'—'],
+    ['7D 出来高',fmt(v7)+` <span class="${cls(pct(v7,vp7))}" style="font-size:11px">${pctTxt(pct(v7,vp7))}</span>`],
+    ['7D / 30D 件数',w(0,7).length+' / '+l30.length],
   ];
-  document.getElementById('kpis').innerHTML=k.map(([a,b,c])=>`<div class="kpi"><span class="lab">${a}</span><span class="val">${b}</span><span class="sub">${c}</span></div>`).join('');
+  document.getElementById('stats').innerHTML=st.map(([k,v])=>`<div class="stat"><span class="k">${k}</span><span class="v">${v}</span></div>`).join('');
 }
 
-/* ------------ charts */
+/* ---------- controls */
+function drawSeg(id,items,key){
+  const el=document.getElementById(id);
+  el.innerHTML=items.map(([v,l])=>`<button type="button" data-v="${v}" aria-pressed="${S[key]==v}">${l}</button>`).join('');
+  el.onclick=e=>{const b=e.target.closest('button');if(!b)return;S[key]=key==='range'?+b.dataset.v:b.dataset.v;save();render()};
+}
+
+/* ---------- charts */
 const charts={};
-function chart(id){if(!charts[id]){charts[id]=echarts.init(document.getElementById(id),null,{renderer:'canvas'});} return charts[id];}
-function baseAxis(){return {axisLine:{lineStyle:{color:css('--line')}},axisTick:{show:false},axisLabel:{color:css('--muted'),fontFamily:'IBM Plex Mono',fontSize:11},splitLine:{lineStyle:{color:css('--grid')}}}}
-function tip(){return {backgroundColor:css('--surface'),borderColor:css('--line'),textStyle:{color:css('--ink'),fontSize:12},extraCssText:'box-shadow:0 4px 14px rgba(0,0,0,.12);border-radius:8px'}}
+const chart=id=>charts[id]||(charts[id]=echarts.init(document.getElementById(id),null,{renderer:'canvas'}));
+const AX=()=>({axisLine:{lineStyle:{color:css('--line-2')}},axisTick:{show:false},axisLabel:{color:css('--muted'),fontFamily:'IBM Plex Mono',fontSize:10.5},splitLine:{lineStyle:{color:css('--line'),type:[3,3]}}});
+const TIP=()=>({backgroundColor:css('--panel-2'),borderColor:css('--line-2'),textStyle:{color:css('--ink'),fontSize:12,fontFamily:'IBM Plex Mono'},extraCssText:'border-radius:4px;box-shadow:0 6px 20px rgba(0,0,0,.4)'});
+const dayLab=d=>{const x=new Date(d*DAY*1000);return pad(x.getUTCMonth()+1)+'/'+pad(x.getUTCDate())};
 
 function drawPrice(list){
-  const r=list.filter(inRange).filter(o=>isFinite(val(o)));
-  const byDay=new Map();
-  r.forEach(o=>{if(!byDay.has(o.day))byDay.set(o.day,[]);byDay.get(o.day).push(val(o))});
-  const d0=r.length?Math.min(...r.map(o=>o.day)):today, days=[];
-  for(let d=S.range?Math.max(d0,today-S.range+1):d0; d<=today; d++) days.push(d);
-  const med=days.map(d=>byDay.has(d)?[d*86400000,median(byDay.get(d))]:[d*86400000,null]);
-  const vol=days.map(d=>[d*86400000,byDay.has(d)?byDay.get(d).reduce((s,v)=>s+v,0):0]);
-  const cnt=new Map(days.map(d=>[d,byDay.has(d)?byDay.get(d).length:0]));
-  const pts=r.map(o=>[ (o.day*86400000)+((o.t+JST)%86400)*1000, val(o), o.seg, o.token, o.level]);
-  const s1=css('--s1'), ax=baseAxis();
-  const unitLab=S.unit==='usd'?'USD':'BNB';
-  document.getElementById('priceTitle').textContent=(S.seg||TYPES.find(t=>t[0]===S.type)[1])+' の成約価格の推移';
-  const xAxis={type:'time',...ax,splitLine:{show:false},axisLabel:{...ax.axisLabel,formatter:v=>fmtDay(Math.floor(v/86400000))}};
+  const T=today();const r=list.filter(o=>isFinite(V(o)));
+  const first=r.length?r[r.length-1].day:T;
+  const d0=S.range?Math.max(first,T-S.range+1):first;
+  const byDay=new Map();[...r].reverse().forEach(o=>{if(!byDay.has(o.day))byDay.set(o.day,[]);byDay.get(o.day).push(V(o))});
+  const days=[],ohlc=[],vol=[],ma=[],cnt=[];
+  for(let d=d0;d<=T;d++){
+    days.push(dayLab(d));const a=byDay.get(d);
+    if(a){ohlc.push([a[0],a[a.length-1],Math.min(...a),Math.max(...a)]);vol.push({value:a.reduce((s,x)=>s+x,0),itemStyle:{color:a[a.length-1]>=a[0]?'rgba(24,192,122,.45)':'rgba(240,71,79,.45)'}});cnt.push(a.length)}
+    else{ohlc.push(['-','-','-','-']);vol.push({value:0});cnt.push(0)}
+    const win=[];for(let k=d-6;k<=d;k++)if(byDay.has(k))win.push(...byDay.get(k));ma.push(win.length?med(win):'-');
+  }
+  const ax=AX();
   chart('priceChart').setOption({
-    animation:false, grid:{left:8,right:12,top:14,bottom:4,containLabel:true},
-    tooltip:{...tip(),trigger:'item',formatter:p=>{
-      if(p.seriesIndex===0){const [t,v,seg,tok,lv]=p.data;return `<b>${esc(seg)}</b>${S.type==='manekineko'||S.type==='genesis'?' #'+esc(tok):''}<br>${fmtV(v)}${lv?' · Lv.'+lv:''}<br><span style="color:${css('--muted')}">${fmtTime(Math.floor(t/1000)-JST)}</span>`}
-      const d=Math.floor(p.data[0]/86400000);return `${fmtDay(d)} 中央値<br><b>${fmtV(p.data[1])}</b> · ${cnt.get(d)||0}件`}},
-    xAxis, yAxis:{type:'value',scale:true,...ax,name:unitLab,nameTextStyle:{color:css('--muted'),fontSize:11,align:'left'}},
+    animation:false,
+    axisPointer:{link:[{xAxisIndex:'all'}],lineStyle:{color:css('--muted'),type:'dashed'},label:{backgroundColor:css('--line-2'),fontFamily:'IBM Plex Mono',formatter:p=>typeof p.value==='number'?fmt(p.value):p.value}},
+    tooltip:{...TIP(),trigger:'axis',axisPointer:{type:'cross'},formatter:ps=>{
+      const i=ps[0].dataIndex;const o=ohlc[i];const u=unitLab();
+      if(o[0]==='-')return `<b>${days[i]}</b><br><span style="color:${css('--muted')}">約定なし</span>${ma[i]!=='-'?`<br><span style="color:${css('--gold')}">7D中央値 ${fmt(ma[i])}</span>`:''}`;
+      const c=o[1]>=o[0]?css('--up'):css('--down');
+      return `<b>${days[i]}</b> <span style="color:${css('--muted')}">${cnt[i]}件</span><br>始 ${fmt(o[0])}　高 ${fmt(o[3])}<br>安 ${fmt(o[2])}　終 <span style="color:${c}">${fmt(o[1])}</span><br><span style="color:${css('--gold')}">7D中央値 ${fmt(ma[i])}</span><br>出来高 ${fmt(vol[i].value||0)} ${u}`}},
+    grid:[{left:10,right:66,top:16,height:'64%'},{left:10,right:66,top:'78%',bottom:24}],
+    xAxis:[{type:'category',data:days,...ax,axisLabel:{show:false},splitLine:{show:false}},{type:'category',data:days,gridIndex:1,...ax,splitLine:{show:false}}],
+    yAxis:[{type:'value',scale:true,position:'right',...ax,axisLabel:{...ax.axisLabel,formatter:v=>fmt(v)}},{type:'value',gridIndex:1,position:'right',...ax,splitNumber:2,axisLabel:{...ax.axisLabel,formatter:v=>fmt(v)}}],
+    dataZoom:[{type:'inside',xAxisIndex:[0,1],start:0,end:100}],
     series:[
-      {type:'scatter',data:pts,symbolSize:6,itemStyle:{color:s1,opacity:.28},emphasis:{itemStyle:{opacity:1,borderColor:css('--surface'),borderWidth:2}},z:1},
-      {type:'line',data:med,connectNulls:true,showSymbol:false,symbolSize:8,lineStyle:{width:2,color:s1},itemStyle:{color:s1},z:3,
-        endLabel:{show:true,formatter:p=>fmtV(p.data[1]).replace(' BNB',''),color:css('--ink'),fontFamily:'IBM Plex Mono',fontSize:11,backgroundColor:css('--surface'),padding:[2,4]}}
+      {type:'candlestick',data:ohlc,barMaxWidth:12,itemStyle:{color:css('--up'),color0:css('--down'),borderColor:css('--up'),borderColor0:css('--down')},
+       markLine:{symbol:'none',silent:true,label:{position:'end',formatter:p=>fmt(p.value),color:'#0b0e12',backgroundColor:css('--ink-2'),padding:[2,4],borderRadius:2,fontFamily:'IBM Plex Mono',fontSize:10.5},lineStyle:{color:css('--ink-2'),type:'dashed',width:1},data:r.length?[{yAxis:V(r[0])}]:[]}},
+      {type:'line',data:ma,showSymbol:false,connectNulls:true,lineStyle:{width:1.6,color:css('--gold')},itemStyle:{color:css('--gold')},z:3},
+      {type:'bar',data:vol,xAxisIndex:1,yAxisIndex:1,barMaxWidth:12}
     ]
   },true);
-  chart('volChart').setOption({
-    animation:false, grid:{left:8,right:12,top:22,bottom:4,containLabel:true},
-    title:{text:'日次出来高 ('+unitLab+')',textStyle:{color:css('--muted'),fontSize:11,fontWeight:500},left:0,top:0},
-    tooltip:{...tip(),trigger:'axis',axisPointer:{type:'shadow'},formatter:ps=>{const p=ps[0];const d=Math.floor(p.data[0]/86400000);return `${fmtDay(d)}<br><b>${fmtV(p.data[1])}</b> · ${cnt.get(d)||0}件`}},
-    xAxis, yAxis:{type:'value',...ax,splitNumber:2},
-    series:[{type:'bar',data:vol,barMaxWidth:14,itemStyle:{color:css('--s1'),opacity:.75,borderRadius:[3,3,0,0]}}]
-  },true);
 }
 
-function drawLevel(){
-  const panel=document.getElementById('levelPanel');
-  const show=S.type==='manekineko'||S.type==='all';
-  panel.hidden=!show; if(!show)return;
-  const r=rows.filter(o=>o.type==='manekineko'&&passF(o)&&(!S.seg||o.seg===S.seg)&&inRange(o)&&isFinite(val(o)));
-  const rar=['common','uncommon','rare'].filter(x=>r.some(o=>o.rarity===x));
-  const others=r.filter(o=>!['common','uncommon','rare'].includes(o.rarity));
-  const colors=[css('--s1'),css('--s2'),css('--s3')];
-  const ser=rar.map((x,i)=>({name:cap(x),type:'scatter',symbolSize:8,data:r.filter(o=>o.rarity===x).map(o=>[o.level,val(o),o.seg,o.token]),itemStyle:{color:colors[i],opacity:.55,borderColor:css('--surface'),borderWidth:1}}));
-  if(others.length) ser.push({name:'その他',type:'scatter',symbolSize:8,data:others.map(o=>[o.level,val(o),o.seg,o.token]),itemStyle:{color:css('--muted'),opacity:.5}});
-  const ax=baseAxis();
+function drawLevel(list){
+  const show=S.type==='manekineko';
+  document.getElementById('levelCard').hidden=!show;
+  document.getElementById('row2').classList.toggle('one',!show);
+  if(!show)return;
+  const T=today();const r=list.filter(o=>(!S.range||o.day>T-S.range)&&isFinite(V(o)));
+  const groups=[['common','C',css('--blue')],['uncommon','UC',css('--orange')],['rare','R',css('--aqua')]].filter(([k])=>r.some(o=>o.rarity===k));
+  const ax=AX();
   chart('levelChart').setOption({
-    animation:false, grid:{left:8,right:12,top:30,bottom:20,containLabel:true},
-    legend:{top:0,left:0,textStyle:{color:css('--ink-2'),fontSize:12},itemWidth:10,itemHeight:10},
-    tooltip:{...tip(),trigger:'item',formatter:p=>`<b>${esc(p.data[2])}</b> #${esc(p.data[3])}<br>Lv.${p.data[0]} · ${fmtV(p.data[1])}`},
-    xAxis:{type:'value',...ax,name:'Lv',nameLocation:'end',nameTextStyle:{color:css('--muted')},minInterval:1},
-    yAxis:{type:'value',scale:true,...ax},
-    series:ser
+    animation:false,grid:{left:10,right:60,top:34,bottom:28},
+    legend:{top:6,left:10,textStyle:{color:css('--ink-2'),fontSize:11},itemWidth:8,itemHeight:8,icon:'circle'},
+    tooltip:{...TIP(),trigger:'item',formatter:p=>`<b>${esc(p.data[2])}</b> #${esc(p.data[3])}<br>Lv.${p.data[0]} · ${fmt(p.data[1])} ${unitLab()}<br><span style="color:${css('--muted')}">${fTime(p.data[4])}</span>`},
+    xAxis:{type:'value',...ax,min:0,name:'Lv',nameTextStyle:{color:css('--muted'),fontSize:10.5},minInterval:1,splitLine:{show:false}},
+    yAxis:{type:'value',scale:true,position:'right',...ax,axisLabel:{...ax.axisLabel,formatter:v=>fmt(v)}},
+    series:groups.map(([k,l,c])=>({name:l,type:'scatter',symbolSize:7,data:r.filter(o=>o.rarity===k).map(o=>[o.level,V(o),o.seg,o.token,o.t]),itemStyle:{color:c,opacity:.7,borderColor:css('--panel'),borderWidth:1}}))
   },true);
 }
 
-/* ------------ segment table */
+/* ---------- market table */
 function spark(vals){
-  const v=vals.filter(x=>isFinite(x)); if(v.length<2) return '';
-  const w=72,h=20,mn=Math.min(...v),mx=Math.max(...v),rg=mx-mn||1;
-  let pts=[],i=0; vals.forEach((x,j)=>{if(isFinite(x))pts.push([j/(vals.length-1)*w, h-2-(x-mn)/rg*(h-4)])});
-  const d=pts.map((p,k)=>(k?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join('');
-  const e=pts[pts.length-1];
-  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"><path d="${d}" fill="none" stroke="var(--s1)" stroke-width="1.5"/><circle cx="${e[0]}" cy="${e[1]}" r="2.5" fill="var(--s1)"/></svg>`;
+  const pts=vals.map((x,i)=>[i,x]).filter(p=>isFinite(p[1]));if(pts.length<2)return '<span class="flat">—</span>';
+  const w=84,h=22,ys=pts.map(p=>p[1]),mn=Math.min(...ys),mx=Math.max(...ys),rg=mx-mn||1;
+  const xy=pts.map(([i,y])=>[i/(vals.length-1)*(w-4)+2,h-3-(y-mn)/rg*(h-6)]);
+  const c=ys[ys.length-1]>=ys[0]?'var(--up)':'var(--down)';const e=xy[xy.length-1];
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"><path d="${xy.map((p,k)=>(k?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join('')}" fill="none" stroke="${c}" stroke-width="1.4"/><circle cx="${e[0].toFixed(1)}" cy="${e[1].toFixed(1)}" r="2.2" fill="${c}"/></svg>`;
 }
-function drawSegTable(){
-  const now=Date.now()/1000,d=86400;
-  const g=new Map();
-  rows.filter(inType).forEach(o=>{if(!g.has(o.seg))g.set(o.seg,[]);g.get(o.seg).push(o)});
+function drawMarket(){
+  const now=Date.now()/1000;const g=new Map();
+  filtered().forEach(o=>{if(!g.has(o.seg))g.set(o.seg,[]);g.get(o.seg).push(o)});
+  const w=(l,a,b)=>l.filter(o=>o.t>now-b*DAY&&o.t<=now-a*DAY).map(V).filter(isFinite);
   let data=[...g.entries()].map(([seg,l])=>{
-    const v7=l.filter(o=>o.t>now-7*d).map(val), vp=l.filter(o=>o.t>now-14*d&&o.t<=now-7*d).map(val);
-    const v30=l.filter(o=>o.t>now-30*d).map(val), vp30=l.filter(o=>o.t>now-60*d&&o.t<=now-30*d).map(val);
-    const weeks=[];for(let k=11;k>=0;k--){weeks.push(median(l.filter(o=>o.t>now-(k+1)*7*d&&o.t<=now-k*7*d).map(val)))}
-    const elite=l.filter(o=>o.talent==='elite').length;
-    return {seg,last:val(l[0]),lastT:l[0].t,m7:median(v7),m30:median(v30),c7:pct(median(v7),median(vp)),c30:pct(median(v30),median(vp30)),n30:v30.length,n:l.length,min30:v30.length?Math.min(...v30):NaN,weeks,elite:l[0].type==='manekineko'?elite/l.length:null};
+    const m7=med(w(l,0,7)),m30=med(w(l,0,30)),l30=w(l,0,30);
+    const weeks=[];for(let k=11;k>=0;k--)weeks.push(med(w(l,k*7,(k+1)*7)));
+    return {seg,last:V(l[0]),m7,c7:pct(m7,med(w(l,7,14))),c30:pct(m30,med(w(l,30,60))),low:l30.length?Math.min(...l30):NaN,n30:l30.length,vol30:l30.reduce((s,x)=>s+x,0),weeks,elite:l.filter(o=>o.talent==='elite').length};
   });
-  const k=S.sort.k,dir=S.sort.d;
-  data.sort((a,b)=>{const x=a[k],y=b[k];if(typeof x==='string')return dir*x.localeCompare(y);const nx=isFinite(x)?x:-Infinity,ny=isFinite(y)?y:-Infinity;return dir*(nx-ny)});
-  const cols=[['seg','区分'],['last','直近価格'],['m7','7日中央値'],['c7','前週比'],['m30','30日中央値'],['c30','前月比'],['min30','30日最安'],['n30','30日件数'],['n','累計'],['weeks','12週の推移']];
-  const th=cols.map(([c,l])=>`<th scope="col" data-k="${c}" ${c===k?`aria-sort="${dir<0?'descending':'ascending'}"`:''}>${l}</th>`).join('');
-  const tr=data.map(r=>`<tr tabindex="0" data-seg="${esc(r.seg)}" class="${S.seg===r.seg?'sel':''}"><td>${esc(r.seg)}${r.elite?`<span class="tag elite" title="elite比率">elite ${(r.elite*100).toFixed(0)}%</span>`:''}</td><td class="num">${fmtV(r.last)}</td><td class="num">${fmtV(r.m7)}</td><td class="num">${chg(r.c7)}</td><td class="num">${fmtV(r.m30)}</td><td class="num">${chg(r.c30)}</td><td class="num">${fmtV(r.min30)}</td><td class="num">${r.n30}</td><td class="num">${r.n}</td><td>${spark(r.weeks)}</td></tr>`).join('');
-  const t=document.getElementById('segTable');
-  t.innerHTML=`<thead><tr>${th}</tr></thead><tbody>${tr||'<tr><td class="empty">データがありません</td></tr>'}</tbody>`;
-  t.querySelector('thead').onclick=e=>{const h=e.target.closest('th');if(!h||h.dataset.k==='weeks')return;const kk=h.dataset.k;S.sort={k:kk,d:S.sort.k===kk?-S.sort.d:(kk==='seg'?1:-1)};drawSegTable()};
+  const {k,d}=S.sort;
+  data.sort((a,b)=>{const x=a[k],y=b[k];if(typeof x==='string')return d*x.localeCompare(y);return d*((isFinite(x)?x:-Infinity)-(isFinite(y)?y:-Infinity))});
+  const cols=[['seg','区分'],['last','直近'],['m7','7D 中央値'],['c7','7D %'],['c30','30D %'],['low','30D 安値'],['vol30','30D 出来高'],['n30','30D 件数'],['weeks','12週']];
+  const th=cols.map(([c,l])=>`<th scope="col" data-k="${c}" ${c===k?`aria-sort="${d<0?'descending':'ascending'}"`:''}>${l}</th>`).join('');
+  const tr=data.map(r=>`<tr tabindex="0" data-seg="${esc(r.seg)}" class="${S.seg===r.seg?'sel':''}"><td class="name">${esc(r.seg)}${r.elite?`<span class="tag" title="ELITEの取引数">E${r.elite}</span>`:''}</td><td>${fmt(r.last)}</td><td>${fmt(r.m7)}</td><td><span class="pill ${cls(r.c7)}">${pctTxt(r.c7)}</span></td><td><span class="pill ${cls(r.c30)}">${pctTxt(r.c30)}</span></td><td>${fmt(r.low)}</td><td>${fmt(r.vol30)}</td><td>${r.n30}</td><td>${spark(r.weeks)}</td></tr>`).join('');
+  const t=document.getElementById('mkt');
+  t.innerHTML=`<thead><tr>${th}</tr></thead><tbody>${tr||`<tr><td class="empty" colspan="9">条件に合う取引がありません。フィルターを減らしてください。</td></tr>`}</tbody>`;
+  t.tHead.onclick=e=>{const h=e.target.closest('th');if(!h||h.dataset.k==='weeks')return;const kk=h.dataset.k;S.sort={k:kk,d:S.sort.k===kk?-S.sort.d:(kk==='seg'?1:-1)};drawMarket()};
   const pick=e=>{const r=e.target.closest('tr[data-seg]');if(!r)return;S.seg=S.seg===r.dataset.seg?null:r.dataset.seg;render();window.scrollTo({top:0,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'})};
-  t.querySelector('tbody').onclick=pick;
-  t.querySelector('tbody').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();pick(e)}};
+  t.tBodies[0].onclick=pick;t.tBodies[0].onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();pick(e)}};
 }
 
-/* ------------ lists */
-function tradeRows(list,withSeg){
-  return list.map(o=>`<tr><td class="mono">${fmtTime(o.t)}</td>${withSeg?`<td style="text-align:left">${esc(o.seg)}${o.talent==='elite'?'<span class="tag elite">elite</span>':''}</td>`:''}<td class="num">${o.type==='manekineko'||o.type==='genesis'?'#'+esc(o.token):''}</td><td class="num">${o.level?'Lv.'+o.level:''}</td><td class="num">${fmtV(o.bnb,'bnb')}</td><td class="num">${o.usd!=null?fmtV(o.usd,'usd'):'—'}</td></tr>`).join('');
-}
-function drawRecent(list){
-  document.getElementById('recent').innerHTML=`<thead><tr><th>日時 (JST)</th><th style="text-align:left">区分</th><th>token</th><th>Lv</th><th>BNB</th><th>USD</th></tr></thead><tbody>${tradeRows(list.slice(0,40),true)||'<tr><td class="empty">データがありません</td></tr>'}</tbody>`;
-}
-function drawSearch(){
+/* ---------- tape */
+let scopedCache=[];
+function drawTape(list){
   const q=document.getElementById('q').value.trim().replace(/^#/,'');
-  const el=document.getElementById('qResult');
-  if(!q){el.innerHTML='<p class="empty">tokenIdを入れると、そのNFTの売買履歴を表示します。</p>';return}
-  const hit=rows.filter(o=>o.token===q&&(o.type==='manekineko'||o.type==='genesis'));
-  if(!hit.length){el.innerHTML=`<p class="empty">#${esc(q)} の成約はまだ記録されていません。</p>`;return}
-  const first=hit[hit.length-1],last=hit[0];
-  el.innerHTML=`<p class="hint" style="padding-inline:14px">${esc(last.seg)} · ${hit.length}回売買 · 初回 ${fmtV(first.bnb,'bnb')} → 直近 ${fmtV(last.bnb,'bnb')} ${hit.length>1?chg(pct(last.bnb,first.bnb)):''}</p><table><thead><tr><th>日時 (JST)</th><th>token</th><th>Lv</th><th>BNB</th><th>USD</th></tr></thead><tbody>${tradeRows(hit,false)}</tbody></table>`;
+  const el=document.getElementById('tape');
+  let l=list,head='';
+  if(q){
+    l=rows.filter(o=>o.token===q&&(o.type==='manekineko'||o.type==='genesis'));
+    if(!l.length){el.innerHTML=`<p class="empty">#${esc(q)} の成約はまだ記録されていません。</p>`;return}
+    const a=l[l.length-1],b=l[0];
+    head=`<p class="empty" style="padding-bottom:4px;color:var(--ink-2)">${esc(b.seg)} #${esc(q)} · ${l.length}回売買 · ${fmt(a.bnb,'bnb')} → ${fmt(b.bnb,'bnb')} BNB ${l.length>1?`<span class="${cls(pct(b.bnb,a.bnb))}">${pctTxt(pct(b.bnb,a.bnb))}</span>`:''}</p>`;
+  }
+  const hasTok=S.type==='manekineko'||S.type==='genesis'||!!q;
+  const body=l.slice(0,80).map(o=>`<tr><td>${fShort(o.t)}</td><td class="name">${esc(o.seg)}${o.talent==='elite'?'<span class="tag">E</span>':''}</td>${hasTok?`<td class="tok">#${esc(o.token)}</td><td>${o.level?'Lv.'+o.level:''}</td>`:''}<td>${fmt(V(o))}</td></tr>`).join('');
+  el.innerHTML=head+`<table><thead><tr><th>日時 (JST)</th><th style="text-align:left">区分</th>${hasTok?'<th class="tok">token</th><th>Lv</th>':''}<th>${unitLab()}</th></tr></thead><tbody>${body||'<tr><td class="empty" colspan="5">取引がありません</td></tr>'}</tbody></table>`;
 }
-document.getElementById('q').addEventListener('input',drawSearch);
+document.getElementById('q').addEventListener('input',()=>drawTape(scopedCache));
 
-/* ------------ render */
+/* ---------- render */
 function render(){
-  drawControls();
-  drawFilters();
-  const list=scoped();
-  drawKpis(list);
-  drawPrice(list);
-  drawSegTable();
-  drawLevel();
-  drawRecent(list);
-  drawSearch();
-  document.getElementById('segHint').textContent=S.seg?`「${S.seg}」で絞り込み中。もう一度選ぶと解除します。`:'行を選ぶと、上のチャートと指標がその区分に絞り込まれます。';
+  drawTabs();drawSide();
+  drawSeg('rangeSeg',[[30,'30D'],[90,'90D'],[0,'ALL']],'range');
+  drawSeg('unitSeg',[['bnb','BNB'],['usd','USD']],'unit');
+  scopedCache=scoped();
+  drawTicker(scopedCache);drawPrice(scopedCache);drawMarket();drawTape(scopedCache);drawLevel(scopedCache);
 }
-const m=document.getElementById('meta');
-const built=D.lastRun||D.built;
-m.innerHTML=`最終取得 <span class="mono">${built?fmtTime(built):'—'}</span> JST · 記録 <span class="mono">${rows.length.toLocaleString()}</span> 件${D.siteTotal?` / サイト表示 <span class="mono">${D.siteTotal.toLocaleString()}</span> 件`:''}`;
-document.getElementById('foot').textContent='データ: manekineko.syfu.io/activity の成約履歴を1日1回取得。USDは成約時点の表示値。日付の区切りは日本時間。';
+const lr=D.lastRun||D.built;
+document.getElementById('updated').innerHTML=`更新 <span class="mono">${lr?fTime(lr):'—'}</span> · <span class="mono">${rows.length.toLocaleString()}</span> trades`;
+document.getElementById('foot').textContent=`データ: manekineko.syfu.io/activity の成約履歴（${rows.length.toLocaleString()}件 / サイト表示 ${(D.siteTotal||0).toLocaleString()}件）。毎日 04:17 JST ごろ更新。USDは成約時点の表示値、日付の区切りは日本時間。`;
 render();
 let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>Object.values(charts).forEach(c=>c.resize()),120)});
-const rerender=()=>render();
-matchMedia('(prefers-color-scheme: dark)').addEventListener('change',rerender);
-new MutationObserver(rerender).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
 })();
 </script>
