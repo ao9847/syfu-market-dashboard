@@ -41,6 +41,7 @@ header.top h1 .coin{display:inline-block;width:14px;height:18px;border-radius:50
 .segpill{display:inline-flex;align-items:center;gap:6px;background:var(--accent-soft);color:var(--ink);border-radius:999px;padding:4px 6px 4px 12px;font-size:13px}
 .segpill button{border:0;background:transparent;color:var(--ink-2);cursor:pointer;font-size:15px;line-height:1;padding:2px 6px;border-radius:999px}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+@media (max-width:520px){.kpi:last-child:nth-child(odd){grid-column:1/-1}}
 .kpi{background:var(--surface);padding:12px 14px;display:flex;flex-direction:column;gap:2px;min-width:0}
 .kpi .lab{font-size:11px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
 .kpi .val{font-family:var(--mono);font-size:20px;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -68,6 +69,26 @@ th[aria-sort="descending"]::after{content:" ↓"} th[aria-sort="ascending"]::aft
 .tag.elite{background:var(--accent-soft);color:var(--accent)}
 .search{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
 .search input{font:inherit;font-family:var(--mono);background:var(--surface-2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:7px 10px;width:220px;max-width:100%}
+.filters{display:flex;flex-direction:column;gap:10px}
+.filters[hidden]{display:none!important}
+.fhead{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:6px 16px}
+.fhead h2{margin:0}
+.fhead .count{font-family:var(--mono);font-size:12px;color:var(--ink-2)}
+.fhead button{font:inherit;font-size:12px;border:1px solid var(--line);background:transparent;color:var(--ink-2);border-radius:6px;padding:3px 10px;cursor:pointer}
+.fbody{display:flex;flex-direction:column;gap:10px}
+.fsum{font-size:12px;color:var(--ink-2)}
+.frow{display:grid;grid-template-columns:128px minmax(0,1fr);gap:6px 12px;align-items:start}
+@media (max-width:600px){.frow{grid-template-columns:minmax(0,1fr)}}
+.frow>.flab{font-size:11px;color:var(--muted);letter-spacing:.08em;padding-top:5px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:inherit;font-size:12px;letter-spacing:.02em;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);border-radius:999px;padding:3px 10px;cursor:pointer;display:inline-flex;gap:6px;align-items:baseline}
+.chip .n{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.chip[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--ink)}
+.chip.zero{opacity:.45}
+.chip.group{font-weight:700;letter-spacing:.08em}
+.lgroups{display:flex;flex-direction:column;gap:6px}
+.lgroup{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.lgroup .chip.group{min-width:92px;justify-content:center}
 .empty{color:var(--muted);font-size:13px;padding:10px 0}
 .scroll{max-height:420px;overflow:auto}
 footer{color:var(--muted);font-size:12px}
@@ -86,6 +107,8 @@ footer{color:var(--muted);font-size:12px}
     <div class="seg" id="unitSeg" aria-label="通貨"></div>
     <span id="segPill" hidden></span>
   </div>
+
+  <section class="panel filters" id="filters" aria-label="絞り込み" hidden></section>
 
   <section class="kpis" id="kpis" aria-label="主要指標"></section>
 
@@ -129,32 +152,64 @@ footer{color:var(--muted);font-size:12px}
 const D = window.__DATA__ || {cols:[],rows:[]};
 const C = {}; D.cols.forEach((c,i)=>C[c]=i);
 const JST = 9*3600;
-const rows = D.rows.map(r=>{
+const rows = [];
+function buildRows(){ D.rows.forEach(r=>{
   const o={}; D.cols.forEach((c,i)=>o[c]=r[i]);
   o.day = Math.floor((o.t+JST)/86400); // JST day index
+  if(o.type==='manekineko'){
+    o.stage = o.level>=10?'PRIME':o.level>=3?'MINI':'POD';
+    const ed=(o.name.match(/^(.+?) × SyFu/)||[])[1];
+    o.edition = !ed?'STANDARD':/^1BLOCK/i.test(ed)?'1BLOCK STUDIO':ed.toUpperCase();
+    o.tags = [o.origin==='OG'?'OG':o.origin==='ORIGIN'?'ORIGIN':'NONE'].concat(o.talent==='elite'?['ELITE']:[]);
+    o.lin = o.lineage? cap(o.lineage):'NONE';
+    o.lgroup = LGROUP[o.lin]||(o.lineage?'OTHER':'NONE');
+  }
   o.seg = segOf(o);
-  return o;
-}).sort((a,b)=>b.t-a.t);
+  rows.push(o);
+}); rows.sort((a,b)=>b.t-a.t); }
 
+const LINEAGES={ZENITH:['Genesis','Chronos','Nexus','Logos','Vector','Aura','Apex','Equinox'],LUNA:['Cobalt','Titanium','Nickel','Palladium','Rhodium','Iridium','Osmium','Chrome'],VEGA:['Jasper','Onyx','Zircon','Spinel','Garnet','Topaz','Beryl','Citrine'],NEBULA:['Basalt','Granite','Slate','Shale','Gneiss','Marble','Obsidian','Andesite']};
+const LGROUP={};Object.entries(LINEAGES).forEach(([g,l])=>l.forEach(x=>LGROUP[x]=g));
+buildRows();
 function cap(s){return s? s.charAt(0).toUpperCase()+s.slice(1):s}
 function segOf(o){
   if(o.type==='manekineko'){
     const parts=[cap(o.rarity)||'—'];
     if(o.origin==='OG') parts.push('OG');
+    if(o.origin==='ORIGIN') parts.push('Origin');
     if(o.lineage) parts.push(cap(o.lineage));
     parts.push((o.rank||'').toUpperCase()||'—');
     return parts.join(' ');
   }
   if(o.type==='genesis') return 'Genesis';
+  if(o.type==='breed_item') return o.name+' · '+(o.variant||'—');
   return o.name + (o.rarity? ' · '+cap(o.rarity):'');
 }
 
 const TYPES=[['manekineko','MANEKINEKO'],['genesis','Genesis'],['breed_item','ブリードアイテム'],['excavation_right','Right Scroll'],['all','すべて']];
 const RANGES=[[30,'30日'],[90,'90日'],[0,'全期間']];
 const UNITS=[['bnb','BNB'],['usd','USD']];
-const S={type:'manekineko',range:90,unit:'bnb',seg:null,sort:{k:'n30',d:-1}};
-try{const s=JSON.parse(localStorage.getItem('smw')||'{}'); ['type','range','unit'].forEach(k=>{if(s[k]!==undefined)S[k]=s[k]});}catch(e){}
-function persist(){try{localStorage.setItem('smw',JSON.stringify({type:S.type,range:S.range,unit:S.unit}))}catch(e){}}
+const S={type:'manekineko',range:90,unit:'bnb',seg:null,sort:{k:'n30',d:-1},f:{}};
+const FGROUPS={
+  manekineko:[
+    ['rarity','RARITY',['COMMON','UNCOMMON','RARE'],o=>[(o.rarity||'').toUpperCase()]],
+    ['type','TYPE',['NONE','OG','ORIGIN','ELITE'],o=>o.tags],
+    ['stage','STAGE',['POD','MINI','PRIME'],o=>[o.stage]],
+    ['rank','PARAMETER RANK',['P0','P1','P2','P3','P4'],o=>[(o.rank||'').toUpperCase()]],
+    ['edition','EDITION',['STANDARD','KDDI','LUPIN THE IIIRD','SNPIT','1BLOCK STUDIO'],o=>[o.edition]],
+    ['lineage','LINEAGE',null,o=>[o.lin]],
+  ],
+  breed_item:[
+    ['variant','VARIANT',['NORMAL','WHITE','COLLAB'],o=>[o.variant]],
+  ],
+};
+try{const s=JSON.parse(localStorage.getItem('smw')||'{}'); ['type','range','unit'].forEach(k=>{if(s[k]!==undefined)S[k]=s[k]}); if(s.f) Object.entries(s.f).forEach(([k,v])=>S.f[k]=new Set(v));}catch(e){}
+function persist(){try{localStorage.setItem('smw',JSON.stringify({type:S.type,range:S.range,unit:S.unit,f:Object.fromEntries(Object.entries(S.f).map(([k,v])=>[k,[...v]]))}))}catch(e){}}
+function passF(o,skip){
+  const gs=FGROUPS[o.type]; if(!gs||S.type!==o.type) return true;
+  for(const [k,,,get] of gs){ if(k===skip) continue; const sel=S.f[o.type+'.'+k]; if(sel&&sel.size&&!get(o).some(v=>sel.has(v))) return false; }
+  return true;
+}
 
 const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const fmtDay=d=>{const x=new Date(d*86400000);return (x.getUTCMonth()+1)+'/'+x.getUTCDate()};
@@ -166,9 +221,55 @@ function pct(a,b){return (isFinite(a)&&isFinite(b)&&b>0)?(a/b-1)*100:NaN}
 function chg(p){if(!isFinite(p))return '<span class="meta">—</span>';const c=p>=0?'up':'down';return `<span class="${c}">${p>=0?'▲':'▼'} ${Math.abs(p).toFixed(1)}%</span>`}
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
-const today = rows.length? Math.floor((Date.now()/1000+JST)/86400) : 0;
-function inType(o){return S.type==='all'||o.type===S.type}
+const today = Math.floor((Date.now()/1000+JST)/86400);
+function inType(o){return (S.type==='all'||o.type===S.type)&&passF(o)}
 function scoped(){return rows.filter(o=>inType(o)&&(!S.seg||o.seg===S.seg))}
+
+/* ------------ filter panel */
+function drawFilters(){
+  const el=document.getElementById('filters'); const gs=FGROUPS[S.type];
+  if(!gs){el.hidden=true;return} el.hidden=false;
+  const base=rows.filter(o=>o.type===S.type);
+  const matched=base.filter(o=>passF(o)).length;
+  const active=gs.some(([k])=>S.f[S.type+'.'+k]&&S.f[S.type+'.'+k].size);
+  const chip=(k,v,n,cls)=>{const on=S.f[S.type+'.'+k]&&S.f[S.type+'.'+k].has(v);return `<button type="button" class="chip ${cls||''} ${n?'':'zero'}" data-k="${k}" data-v="${esc(v)}" aria-pressed="${!!on}">${esc(v)}<span class="n">${n}</span></button>`};
+  const counts=(k,get)=>{const c=new Map();base.filter(o=>passF(o,k)).forEach(o=>get(o).forEach(v=>c.set(v,(c.get(v)||0)+1)));return c};
+  const open=S.fopen!==undefined?S.fopen:innerWidth>700;
+  const summary=gs.map(([k,label])=>{const v=S.f[S.type+'.'+k];if(!v||!v.size)return null;let items=[...v];
+    if(k==='lineage'){Object.entries(LINEAGES).forEach(([g,l])=>{if(l.every(x=>v.has(x))){items=items.filter(x=>!l.includes(x));items.push(g+'（全系統）')}})}
+    return label+': '+items.join(', ')}).filter(Boolean).join(' ／ ')||'条件なし';
+  let html=`<div class="fhead"><h2>${S.type==='manekineko'?'MANEKINEKO フィルター':'アイテムの種類'}</h2><span class="count">${matched.toLocaleString()} / ${base.length.toLocaleString()} 件が該当</span><span style="display:flex;gap:6px">${active?'<button type="button" id="fclear">すべて解除</button>':''}<button type="button" id="ftoggle" aria-expanded="${open}">${open?'閉じる':'条件を開く'}</button></span></div>`;
+  if(!open){ el.innerHTML=html+`<div class="fsum">${esc(summary)}</div>`; bindF(el,gs); return; }
+  html+='<div class="fbody">';
+  for(const [k,label,opts,get] of gs){
+    const c=counts(k,get);
+    if(k==='lineage'){
+      const sel=S.f[S.type+'.lineage']||new Set();
+      const groups=Object.entries(LINEAGES).map(([g,list])=>{
+        const all=list.every(x=>sel.has(x)); const gn=list.reduce((s,x)=>s+(c.get(x)||0),0);
+        return `<div class="lgroup"><button type="button" class="chip group ${gn?'':'zero'}" data-group="${g}" aria-pressed="${all}">${g}<span class="n">${gn}</span></button>${list.map(x=>chip(k,x,c.get(x)||0)).join('')}</div>`}).join('');
+      html+=`<div class="frow"><span class="flab">${label}</span><div class="lgroups"><div class="lgroup">${chip(k,'NONE',c.get('NONE')||0)}<span class="meta">系統なし（OGなど）</span></div>${groups}</div></div>`;
+    } else {
+      html+=`<div class="frow"><span class="flab">${label}${k==='stage'?' <span title="売却時レベルから判定: Lv1-2 POD / 3-9 MINI / 10+ PRIME">*</span>':''}</span><div class="chips">${opts.map(v=>chip(k,v,c.get(v)||0)).join('')}</div></div>`;
+    }
+  }
+  html+='</div>';
+  if(S.type==='manekineko') html+=`<p class="meta" style="margin:0">* STAGE は売却時レベルから判定（Lv1–2 POD / 3–9 MINI / 10+ PRIME）。同じ項目内は「いずれか」、項目どうしは「すべて」で絞り込みます。</p>`;
+  el.innerHTML=html;
+  bindF(el,gs);
+}
+function bindF(el,gs){
+  el.onclick=e=>{
+    if(e.target.id==='ftoggle'){const o=e.target.getAttribute('aria-expanded')==='true';S.fopen=!o;drawFilters();return}
+    if(e.target.id==='fclear'){gs.forEach(([k])=>delete S.f[S.type+'.'+k]);S.seg=null;persist();render();return}
+    const b=e.target.closest('button.chip'); if(!b) return;
+    const key=S.type+'.'+(b.dataset.group?'lineage':b.dataset.k);
+    const set=S.f[key]||(S.f[key]=new Set());
+    if(b.dataset.group){const list=LINEAGES[b.dataset.group];const all=list.every(x=>set.has(x));list.forEach(x=>all?set.delete(x):set.add(x));}
+    else set.has(b.dataset.v)?set.delete(b.dataset.v):set.add(b.dataset.v);
+    S.seg=null; persist(); render();
+  };
+}
 function inRange(o){return !S.range||o.day>today-S.range}
 
 /* ------------ controls */
@@ -248,7 +349,7 @@ function drawLevel(){
   const panel=document.getElementById('levelPanel');
   const show=S.type==='manekineko'||S.type==='all';
   panel.hidden=!show; if(!show)return;
-  const r=rows.filter(o=>o.type==='manekineko'&&(!S.seg||o.seg===S.seg)&&inRange(o)&&isFinite(val(o)));
+  const r=rows.filter(o=>o.type==='manekineko'&&passF(o)&&(!S.seg||o.seg===S.seg)&&inRange(o)&&isFinite(val(o)));
   const rar=['common','uncommon','rare'].filter(x=>r.some(o=>o.rarity===x));
   const others=r.filter(o=>!['common','uncommon','rare'].includes(o.rarity));
   const colors=[css('--s1'),css('--s2'),css('--s3')];
@@ -319,6 +420,7 @@ document.getElementById('q').addEventListener('input',drawSearch);
 /* ------------ render */
 function render(){
   drawControls();
+  drawFilters();
   const list=scoped();
   drawKpis(list);
   drawPrice(list);

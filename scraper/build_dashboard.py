@@ -10,7 +10,21 @@ STATE = os.path.join(ROOT, "data", "state.json")
 TEMPLATE = os.path.join(ROOT, "dashboard", "template.html")
 OUT = os.path.join(ROOT, "dist", "index.html")
 
-COLS = ["id", "type", "token", "name", "rarity", "rank", "lineage", "origin", "talent", "level", "bnb", "usd", "t"]
+COLS = ["id", "type", "token", "name", "rarity", "rank", "lineage", "origin", "talent", "level", "bnb", "usd", "t", "variant"]
+
+# Breed-item variants, identified by the item image (as labelled on the marketplace ITEMS tab).
+VARIANTS = {
+    "c72d48ae-359a-4827-ad48-ae359a682723": "NORMAL",  # TAIYAKI
+    "6b18215c-d7a7-4756-b49f-b47fce23a4fc": "WHITE",   # TAIYAKI (white)
+    "708d8bd9-184a-47e0-953f-b9dd5f488b45": "COLLAB",  # The IIIRD Card
+}
+
+
+def variant_of(r):
+    if r.get("type") != "breed_item":
+        return ""
+    img = (r.get("img") or "").rsplit("/", 1)[-1].split(".")[0]
+    return VARIANTS.get(img, "NEW")
 
 
 def main(trades_path=TRADES, out_path=OUT):
@@ -20,6 +34,7 @@ def main(trades_path=TRADES, out_path=OUT):
             for line in f:
                 if line.strip():
                     r = json.loads(line)
+                    r["variant"] = variant_of(r)
                     rows.append([r.get(c) for c in COLS])
     state = {}
     if os.path.exists(STATE):
