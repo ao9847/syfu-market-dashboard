@@ -407,12 +407,15 @@ const dayLab=d=>{const x=new Date(d*DAY*1000);return pad(x.getUTCMonth()+1)+'/'+
 
 const ITEM_COLORS={'TAIYAKI NORMAL':'#4c8ff0','TAIYAKI WHITE':'#e3703c','The IIIRD Card (COLLAB)':'#22b389','Right Scroll':'#d9a21b'};
 function drawPrice(list){
-  const T=today();const r=list.filter(o=>isFinite(V(o)));
-  const first=r.length?r[r.length-1].day:T;
-  const d0=S.range?Math.max(first,T-S.range+1):first;
-  const idx=d=>d-d0;
-  const days=[];for(let d=d0;d<=T;d++)days.push(dayLab(d));
-  const inR=r.filter(o=>o.day>=d0);
+  const now=Date.now()/1000;const r=list.filter(o=>isFinite(V(o)));
+  const B=S.range===1?3600:S.range===7?4*3600:DAY;
+  const bk=t=>Math.floor((t+JST)/B);
+  const start=S.range?now-S.range*DAY:(r.length?r[r.length-1].t:now);
+  const d0=bk(start),T=bk(now);
+  const lab=b=>{const x=new Date(b*B*1000);const md=pad(x.getUTCMonth()+1)+'/'+pad(x.getUTCDate());return B===DAY?md:B===3600?pad(x.getUTCHours())+':00':md+' '+pad(x.getUTCHours())+'時'};
+  const idx=b=>b-d0;
+  const days=[];for(let d=d0;d<=T;d++)days.push(lab(d));
+  const inR=r.filter(o=>o.t>=start).map(o=>Object.assign(Object.create(o),{day:bk(o.t)}));
   const segs=[...new Set(inR.map(o=>o.seg))];
   const multi=S.type==='items'&&segs.length>1;
   const daily=l=>{const m=new Map();l.forEach(o=>{if(!m.has(o.day))m.set(o.day,[]);m.get(o.day).push(V(o))});return m};
@@ -425,14 +428,14 @@ function drawPrice(list){
     const order=ITEM_ORDER.filter(x=>segs.includes(x)).concat(segs.filter(x=>!ITEM_ORDER.includes(x)));
     order.forEach(seg=>{const m=daily(inR.filter(o=>o.seg===seg));const c=ITEM_COLORS[seg]||css('--ink-2');
       series.push({name:seg,type:'line',data:days.map((_,i)=>{const a=m.get(d0+i);return a?med(a):'-'}),connectNulls:true,showSymbol:true,symbolSize:4,lineStyle:{width:2,color:c},itemStyle:{color:c}})});
-    leg.innerHTML='<b style="color:var(--ink)">日次中央値</b>'+order.map(x=>`<span><i style="background:${ITEM_COLORS[x]||'var(--ink-2)'}"></i>${esc(x)}</span>`).join('');
+    leg.innerHTML=`<b style="color:var(--ink)">${B===DAY?'日次':B===3600?'1時間ごとの':'4時間ごとの'}中央値</b>`+order.map(x=>`<span><i style="background:${ITEM_COLORS[x]||'var(--ink-2)'}"></i>${esc(x)}</span>`).join('');
   } else {
     const med1=days.map((_,i)=>{const a=all.get(d0+i);return a?med(a):'-'});
     const c=css('--gold');
-    series.push({name:'個別の約定',type:'scatter',data:inR.map(o=>[idx(o.day),V(o)]),symbolSize:5,itemStyle:{color:c,opacity:.22},silent:true,z:1});
+    series.push({name:'個別の約定',type:'scatter',data:inR.map(o=>[idx(o.day),V(o)]),symbolSize:B===DAY?5:7,itemStyle:{color:c,opacity:.22},silent:true,z:1});
     series.push({name:'日次中央値',type:'line',data:med1,connectNulls:true,showSymbol:true,symbol:'circle',symbolSize:4,lineStyle:{width:2,color:c},itemStyle:{color:c},areaStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(232,180,74,.18)'},{offset:1,color:'rgba(232,180,74,0)'}])},z:3,
       markLine:{symbol:'none',silent:true,label:{position:'end',formatter:p=>fmt(p.value),color:'#0b0e12',backgroundColor:css('--ink-2'),padding:[2,4],borderRadius:2,fontFamily:'IBM Plex Mono',fontSize:10.5},lineStyle:{color:css('--ink-2'),type:'dashed',width:1},data:r.length?[{yAxis:V(r[0])}]:[]}});
-    leg.innerHTML='<span><i></i>日次中央値</span><span><u></u>個別の約定</span><span class="flat">破線 = 直近の成約価格</span>';
+    leg.innerHTML=`<span><i></i>${B===DAY?'日次':B===3600?'1時間ごとの':'4時間ごとの'}中央値</span><span><u></u>個別の約定</span><span class="flat">破線 = 直近の成約価格</span>`;
   }
   series.push({name:'出来高',type:'bar',data:vol,xAxisIndex:1,yAxisIndex:1,barMaxWidth:10,itemStyle:{color:'rgba(163,173,187,.35)',borderRadius:[2,2,0,0]}});
   chart('priceChart').setOption({
@@ -459,7 +462,7 @@ function drawLevel(list){
   document.getElementById('levelCard').hidden=!show;
   document.getElementById('row2').classList.toggle('one',!show);
   if(!show)return;
-  const T=today();const r=list.filter(o=>(!S.range||o.day>T-S.range)&&isFinite(V(o)));
+  const now=Date.now()/1000;const r=list.filter(o=>(!S.range||o.t>now-S.range*DAY)&&isFinite(V(o)));
   const groups=[['common','C',css('--blue')],['uncommon','UC',css('--orange')],['rare','R',css('--aqua')]].filter(([k])=>r.some(o=>o.rarity===k));
   const ax=AX();
   chart('levelChart').setOption({
@@ -522,7 +525,7 @@ document.getElementById('q').addEventListener('input',()=>drawTape(scopedCache))
 /* ---------- render */
 function render(){
   drawTabs();drawSide();
-  drawSeg('rangeSeg',[[30,'30D'],[90,'90D'],[0,'ALL']],'range');
+  drawSeg('rangeSeg',[[1,'1D'],[7,'7D'],[30,'30D'],[90,'90D'],[0,'ALL']],'range');
   drawSeg('unitSeg',[['bnb','BNB'],['usd','USD']],'unit');
   scopedCache=scoped();
   drawTicker(scopedCache);drawPrice(scopedCache);drawMarket();drawTape(scopedCache);drawLevel(scopedCache);
