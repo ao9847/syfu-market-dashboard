@@ -40,10 +40,6 @@ jobs:
         if: always()
         run: python scraper/build_dashboard.py
 
-      - name: Build prices
-        if: always()
-        run: python scraper/build_prices.py
-
       - name: Commit
         if: always()
         run: |
