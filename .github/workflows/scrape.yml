@@ -2,8 +2,9 @@ name: scrape
 
 on:
   schedule:
-    # 03:47 JST daily (18:47 UTC) - off-peak, off the top of the hour
-    - cron: "47 18 * * *"
+    # every 3 hours at :47 (GitHub's scheduler can delay or drop runs, so run often;
+    # daily mode stops at the first known trade, usually a single request)
+    - cron: "47 */3 * * *"
   push:
     branches: [main]
     paths: ["scraper/**", ".github/workflows/**"]

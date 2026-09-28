@@ -532,7 +532,7 @@ function render(){
 }
 const lr=D.lastRun||D.built;
 document.getElementById('updated').innerHTML=`更新 <span class="mono">${lr?fTime(lr):'—'}</span> · <span class="mono">${rows.length.toLocaleString()}</span> trades`;
-document.getElementById('foot').textContent=`データ: manekineko.syfu.io/activity の成約履歴（${rows.length.toLocaleString()}件 / サイト表示 ${(D.siteTotal||0).toLocaleString()}件）。毎日 04:17 JST ごろ更新。USDは成約時点の表示値、日付の区切りは日本時間。`;
+document.getElementById('foot').textContent=`データ: manekineko.syfu.io/activity の成約履歴（${rows.length.toLocaleString()}件 / サイト表示 ${(D.siteTotal||0).toLocaleString()}件）。3時間おきに取得、ページは毎朝更新。USDは成約時点の表示値、日付の区切りは日本時間。`;
 render();
 let rt;addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(()=>Object.values(charts).forEach(c=>c.resize()),120)});
 })();
