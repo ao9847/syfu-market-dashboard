@@ -420,6 +420,8 @@ function drawPrice(list){
   const multi=S.type==='items'&&segs.length>1;
   const daily=l=>{const m=new Map();l.forEach(o=>{if(!m.has(o.day))m.set(o.day,[]);m.get(o.day).push(V(o))});return m};
   const all=daily(inR);
+  const byB=new Map();inR.forEach(o=>{if(!byB.has(o.day))byB.set(o.day,[]);byB.get(o.day).push(o)});
+  const segOrder=ITEM_ORDER.filter(x=>segs.includes(x)).concat(segs.filter(x=>!ITEM_ORDER.includes(x)));
   const vol=days.map((_,i)=>{const a=all.get(d0+i);return a?a.reduce((s,x)=>s+x,0):0});
   const cnt=days.map((_,i)=>(all.get(d0+i)||[]).length);
   const ax=AX();const series=[];
@@ -442,12 +444,22 @@ function drawPrice(list){
     animation:false,
     axisPointer:{link:[{xAxisIndex:'all'}],lineStyle:{color:css('--muted'),type:'dashed'},label:{backgroundColor:css('--line-2'),fontFamily:'IBM Plex Mono',formatter:p=>typeof p.value==='number'?fmt(p.value):p.value}},
     tooltip:{...TIP(),trigger:'axis',axisPointer:{type:'cross'},formatter:ps=>{
-      const i=ps[0].dataIndex;const a=all.get(d0+i)||[];
+      // bucket index must come from a per-bucket series (line/bar), never from the scatter of individual trades
+      const ref=ps.find(p=>p.seriesType!=='scatter');
+      let i=ref?ref.dataIndex:days.indexOf(ps[0].axisValue);
+      if(i<0||i==null)return '';
+      const a=all.get(d0+i)||[];
+      const trades=byB.get(d0+i)||[];
       let h=`<b>${days[i]}</b> <span style="color:${css('--muted')}">${cnt[i]}件</span>`;
-      if(multi){ps.filter(p=>p.seriesType==='line'&&p.value!=='-'&&p.value!=null).forEach(p=>{h+=`<br>${p.marker}${esc(p.seriesName)} ${fmt(p.value)}`})}
-      else if(a.length){h+=`<br><span style="color:${css('--gold')}">中央値 ${fmt(med(a))}</span><br>安 ${fmt(Math.min(...a))}　高 ${fmt(Math.max(...a))}`}
-      else h+=`<br><span style="color:${css('--muted')}">約定なし</span>`;
-      return h+`<br>出来高 ${fmt(vol[i])} ${unitLab()}`}},
+      if(multi){
+        segOrder.forEach(seg=>{const ts=trades.filter(o=>o.seg===seg);if(!ts.length)return;h+=`<br><span style="color:${ITEM_COLORS[seg]||css('--ink-2')}">●</span> ${esc(seg)} 中央値 ${fmt(med(ts.map(V)))}（${ts.length}件）`});
+      } else if(a.length){
+        h+=`<br><span style="color:${css('--gold')}">中央値 ${fmt(med(a))}</span>　安 ${fmt(Math.min(...a))} / 高 ${fmt(Math.max(...a))}`;
+      } else h+=`<br><span style="color:${css('--muted')}">約定なし</span>`;
+      if(trades.length){
+        h+=`<div style="margin-top:4px;padding-top:4px;border-top:1px solid ${css('--line-2')}">`+trades.slice(0,10).map(o=>`${fShort(o.t)}　${fmt(V(o))}${multi?' · '+esc(o.seg):''}`).join('<br>')+(trades.length>10?`<br><span style="color:${css('--muted')}">ほか ${trades.length-10}件</span>`:'')+`</div>`;
+      }
+      return h+(trades.length?'':'<br>')+`出来高 ${fmt(vol[i])} ${unitLab()}`}},
     legend:{show:false},
     grid:[{left:10,right:66,top:16,height:'64%'},{left:10,right:66,top:'78%',bottom:24}],
     xAxis:[{type:'category',data:days,...ax,axisLabel:{show:false},splitLine:{show:false},boundaryGap:true},{type:'category',data:days,gridIndex:1,...ax,splitLine:{show:false},boundaryGap:true}],
