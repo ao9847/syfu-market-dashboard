@@ -434,7 +434,7 @@ function drawPrice(list){
     const c=css('--gold');
     series.push({name:'個別の約定',type:'scatter',data:inR.map(o=>[idx(o.day),V(o)]),symbolSize:B===DAY?5:7,itemStyle:{color:c,opacity:.22},silent:true,z:1});
     series.push({name:'日次中央値',type:'line',data:med1,connectNulls:true,showSymbol:true,symbol:'circle',symbolSize:4,lineStyle:{width:2,color:c},itemStyle:{color:c},areaStyle:{color:new echarts.graphic.LinearGradient(0,0,0,1,[{offset:0,color:'rgba(232,180,74,.18)'},{offset:1,color:'rgba(232,180,74,0)'}])},z:3,
-      markLine:{symbol:'none',silent:true,label:{position:'end',formatter:p=>fmt(p.value),color:'#0b0e12',backgroundColor:css('--ink-2'),padding:[2,4],borderRadius:2,fontFamily:'IBM Plex Mono',fontSize:10.5},lineStyle:{color:css('--ink-2'),type:'dashed',width:1},data:r.length?[{yAxis:V(r[0])}]:[]}});
+      markLine:{symbol:'none',silent:true,precision:8,label:{position:'end',formatter:p=>fmt(p.value),color:'#0b0e12',backgroundColor:css('--ink-2'),padding:[2,4],borderRadius:2,fontFamily:'IBM Plex Mono',fontSize:10.5},lineStyle:{color:css('--ink-2'),type:'dashed',width:1},data:r.length?[{yAxis:V(r[0])}]:[]}});
     leg.innerHTML=`<span><i></i>${B===DAY?'日次':B===3600?'1時間ごとの':'4時間ごとの'}中央値</span><span><u></u>個別の約定</span><span class="flat">破線 = 直近の成約価格</span>`;
   }
   series.push({name:'出来高',type:'bar',data:vol,xAxisIndex:1,yAxisIndex:1,barMaxWidth:10,itemStyle:{color:'rgba(163,173,187,.35)',borderRadius:[2,2,0,0]}});
@@ -450,7 +450,7 @@ function drawPrice(list){
       return h+`<br>出来高 ${fmt(vol[i])} ${unitLab()}`}},
     legend:{show:false},
     grid:[{left:10,right:66,top:16,height:'64%'},{left:10,right:66,top:'78%',bottom:24}],
-    xAxis:[{type:'category',data:days,...ax,axisLabel:{show:false},splitLine:{show:false},boundaryGap:false},{type:'category',data:days,gridIndex:1,...ax,splitLine:{show:false}}],
+    xAxis:[{type:'category',data:days,...ax,axisLabel:{show:false},splitLine:{show:false},boundaryGap:true},{type:'category',data:days,gridIndex:1,...ax,splitLine:{show:false},boundaryGap:true}],
     yAxis:[{type:'value',scale:true,position:'right',...ax,axisLabel:{...ax.axisLabel,formatter:v=>fmt(v)}},{type:'value',gridIndex:1,position:'right',...ax,splitNumber:2,axisLabel:{...ax.axisLabel,formatter:v=>fmt(v)}}],
     dataZoom:[{type:'inside',xAxisIndex:[0,1],start:0,end:100}],
     series
