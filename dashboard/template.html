@@ -134,20 +134,16 @@ th:last-child,td:last-child{padding-right:14px}
 td{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:12.5px;border-bottom:1px solid rgba(34,41,53,.6)}
 td.name{font-family:var(--sans);font-size:12.5px;font-weight:500;text-align:left}
 th[aria-sort="descending"]::after{content:" ▾";color:var(--ink-2)} th[aria-sort="ascending"]::after{content:" ▴";color:var(--ink-2)}
-#mkt tbody tr{cursor:pointer}
-#mkt tbody tr:hover{background:var(--hover)}
-#mkt tbody tr.sel{background:var(--gold-soft);box-shadow:inset 2px 0 0 var(--gold)}
 .pill{display:inline-block;font-family:var(--mono);font-size:12px;padding:1px 6px;border-radius:3px;min-width:66px;text-align:right}
 .pill.up{background:rgba(24,192,122,.12)} .pill.down{background:rgba(240,71,79,.12)}
 .tag{display:inline-block;font-family:var(--mono);font-size:10px;color:var(--gold);border:1px solid rgba(232,180,74,.4);border-radius:3px;padding:0 4px;margin-left:6px;vertical-align:1px}
-.mkt-scroll{max-height:520px;overflow:auto}
 .search{background:var(--panel-2);border:1px solid var(--line-2);border-radius:4px;color:var(--ink);font-family:var(--mono);font-size:12px;padding:5px 9px;width:170px;max-width:100%}
 .search::placeholder{color:var(--muted)}
-.row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+.row2{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
 .row2.one{grid-template-columns:minmax(0,1fr)}
 @media (max-width:1100px){.row2{grid-template-columns:minmax(0,1fr)}}
 .tape-scroll{max-height:420px;overflow:auto}
-@media (max-width:560px){.tok{display:none}#tape th,#tape td{padding-inline:8px}}
+@media (max-width:560px){.tok{display:none}#tape th,#tape td{padding-inline:8px}#tape td.name{white-space:normal;min-width:0;line-height:1.35}#tape td:first-child{white-space:normal;width:4.6em}}
 #levelChart{width:100%;height:380px}
 .empty{color:var(--muted);padding:18px 14px;font-size:12px;font-family:var(--sans)}
 .note{color:var(--muted);font-size:11px;padding:0 4px;margin:0}
@@ -190,11 +186,6 @@ th[aria-sort="descending"]::after{content:" ▾";color:var(--ink-2)} th[aria-sor
         </div>
       </div>
       <div id="priceChart" role="img" aria-label="日足ローソク足と出来高"></div>
-    </section>
-
-    <section class="card">
-      <div class="card-h"><h2>マーケット</h2><span class="sub">行を選ぶとその区分だけを表示</span></div>
-      <div class="tw mkt-scroll"><table id="mkt"></table></div>
     </section>
 
     <div class="row2" id="row2">
@@ -380,7 +371,7 @@ function drawTicker(list){
   const l30=w(0,30),v7=w(0,7).reduce((s,x)=>s+x,0),vp7=w(7,14).reduce((s,x)=>s+x,0);
   const pe=document.getElementById('tPrice');pe.hidden=false;
   pe.textContent=last?fmt(V(last))+' '+unitLab():'—';pe.className='big '+cls(pct(m7,mp7));
-  document.getElementById('tPriceSub').innerHTML=last?`直近約定 ${fShort(last.t)}${S.unit==='bnb'&&last.usd!=null?' · ≈ '+fmt(last.usd,'usd'):''}${!S.seg?' · '+esc(last.seg):''}`:'該当する取引がありません';
+  document.getElementById('tPriceSub').innerHTML=last?`直近約定 ${fShort(last.t)}${S.unit==='bnb'&&last.usd!=null?' · ≈ '+fmt(last.usd,'usd'):''}${!S.seg?' · '+esc(last.name):''}`:'該当する取引がありません';
   const st=[
     ['7D 中央値',fmt(m7)],
     ['7D 変動',`<span class="${cls(pct(m7,mp7))}">${pctTxt(pct(m7,mp7))}</span>`],
@@ -488,35 +479,6 @@ function drawLevel(list){
   },true);
 }
 
-/* ---------- market table */
-function spark(vals){
-  const pts=vals.map((x,i)=>[i,x]).filter(p=>isFinite(p[1]));if(pts.length<2)return '<span class="flat">—</span>';
-  const w=84,h=22,ys=pts.map(p=>p[1]),mn=Math.min(...ys),mx=Math.max(...ys),rg=mx-mn||1;
-  const xy=pts.map(([i,y])=>[i/(vals.length-1)*(w-4)+2,h-3-(y-mn)/rg*(h-6)]);
-  const c=ys[ys.length-1]>=ys[0]?'var(--up)':'var(--down)';const e=xy[xy.length-1];
-  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"><path d="${xy.map((p,k)=>(k?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join('')}" fill="none" stroke="${c}" stroke-width="1.4"/><circle cx="${e[0].toFixed(1)}" cy="${e[1].toFixed(1)}" r="2.2" fill="${c}"/></svg>`;
-}
-function drawMarket(){
-  const now=Date.now()/1000;const g=new Map();
-  filtered().forEach(o=>{if(!g.has(o.seg))g.set(o.seg,[]);g.get(o.seg).push(o)});
-  const w=(l,a,b)=>l.filter(o=>o.t>now-b*DAY&&o.t<=now-a*DAY).map(V).filter(isFinite);
-  let data=[...g.entries()].map(([seg,l])=>{
-    const m7=med(w(l,0,7)),m30=med(w(l,0,30)),l30=w(l,0,30);
-    const weeks=[];for(let k=11;k>=0;k--)weeks.push(med(w(l,k*7,(k+1)*7)));
-    return {seg,last:V(l[0]),m7,c7:pct(m7,med(w(l,7,14))),c30:pct(m30,med(w(l,30,60))),low:l30.length?Math.min(...l30):NaN,n30:l30.length,vol30:l30.reduce((s,x)=>s+x,0),weeks,elite:l.filter(o=>o.talent==='elite').length};
-  });
-  const {k,d}=S.sort;
-  data.sort((a,b)=>{const x=a[k],y=b[k];if(typeof x==='string')return d*x.localeCompare(y);return d*((isFinite(x)?x:-Infinity)-(isFinite(y)?y:-Infinity))});
-  const cols=[['seg','区分'],['last','直近'],['m7','7D 中央値'],['c7','7D %'],['c30','30D %'],['low','30D 安値'],['vol30','30D 出来高'],['n30','30D 件数'],['weeks','12週']];
-  const th=cols.map(([c,l])=>`<th scope="col" data-k="${c}" ${c===k?`aria-sort="${d<0?'descending':'ascending'}"`:''}>${l}</th>`).join('');
-  const tr=data.map(r=>`<tr tabindex="0" data-seg="${esc(r.seg)}" class="${S.seg===r.seg?'sel':''}"><td class="name">${esc(r.seg)}${r.elite?`<span class="tag" title="ELITEの取引数">E${r.elite}</span>`:''}</td><td>${fmt(r.last)}</td><td>${fmt(r.m7)}</td><td><span class="pill ${cls(r.c7)}">${pctTxt(r.c7)}</span></td><td><span class="pill ${cls(r.c30)}">${pctTxt(r.c30)}</span></td><td>${fmt(r.low)}</td><td>${fmt(r.vol30)}</td><td>${r.n30}</td><td>${spark(r.weeks)}</td></tr>`).join('');
-  const t=document.getElementById('mkt');
-  t.innerHTML=`<thead><tr>${th}</tr></thead><tbody>${tr||`<tr><td class="empty" colspan="9">条件に合う取引がありません。フィルターを減らしてください。</td></tr>`}</tbody>`;
-  t.tHead.onclick=e=>{const h=e.target.closest('th');if(!h||h.dataset.k==='weeks')return;const kk=h.dataset.k;S.sort={k:kk,d:S.sort.k===kk?-S.sort.d:(kk==='seg'?1:-1)};drawMarket()};
-  const pick=e=>{const r=e.target.closest('tr[data-seg]');if(!r)return;S.seg=S.seg===r.dataset.seg?null:r.dataset.seg;render();window.scrollTo({top:0,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'})};
-  t.tBodies[0].onclick=pick;t.tBodies[0].onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();pick(e)}};
-}
-
 /* ---------- tape */
 let scopedCache=[];
 function drawTape(list){
@@ -542,7 +504,7 @@ function render(){
   drawSeg('rangeSeg',[[1,'1D'],[7,'7D'],[30,'30D'],[90,'90D'],[0,'ALL']],'range');
   drawSeg('unitSeg',[['bnb','BNB'],['usd','USD']],'unit');
   scopedCache=scoped();
-  drawTicker(scopedCache);drawPrice(scopedCache);drawMarket();drawTape(scopedCache);drawLevel(scopedCache);
+  drawTicker(scopedCache);drawPrice(scopedCache);drawTape(scopedCache);drawLevel(scopedCache);
 }
 const lr=D.lastRun||D.built;
 document.getElementById('updated').innerHTML=`最終取得 <span class="mono">${lr?fTime(lr):'—'}</span> · <span class="mono">${rows.length.toLocaleString()}</span> trades`;
