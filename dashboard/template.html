@@ -218,6 +218,7 @@ const D=window.__DATA__||{cols:[],rows:[]};
 const JST=9*3600, DAY=86400;
 const LINEAGES={ZENITH:['Genesis','Chronos','Nexus','Logos','Vector','Aura','Apex','Equinox'],LUNA:['Cobalt','Titanium','Nickel','Palladium','Rhodium','Iridium','Osmium','Chrome'],VEGA:['Jasper','Onyx','Zircon','Spinel','Garnet','Topaz','Beryl','Citrine'],NEBULA:['Basalt','Granite','Slate','Shale','Gneiss','Marble','Obsidian','Andesite']};
 const cap=s=>s?s.charAt(0).toUpperCase()+s.slice(1):s;
+const LGROUP_OF=lin=>{for(const g in LINEAGES)if(LINEAGES[g].includes(lin))return g;return ''};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 /* ---------- data */
@@ -236,7 +237,7 @@ D.rows.forEach(r=>{
     if(o.kind!=='NONE')p.push(o.kind==='OG'?'OG':'Origin');
     if(o.lineage)p.push(o.lin);
     p.push((o.rank||'').toUpperCase());
-    o.seg=p.join(' ');
+    o.seg=p.join(' ')+(o.edition!=='STANDARD'?' · '+o.edition:'');
   } else if(o.type==='genesis') o.seg='Genesis';
   else if(o.type==='breed_item') o.seg=o.variant==='COLLAB'?o.name+' (COLLAB)':o.name+' '+(o.variant||'NEW');
   else if(o.type==='excavation_right') o.seg='Right Scroll';
@@ -528,9 +529,10 @@ function drawTape(list){
     const a=l[l.length-1],b=l[0];
     head=`<p class="empty" style="padding-bottom:4px;color:var(--ink-2)">${esc(b.seg)} #${esc(q)} · ${l.length}回売買 · ${fmt(a.bnb,'bnb')} → ${fmt(b.bnb,'bnb')} BNB ${l.length>1?`<span class="${cls(pct(b.bnb,a.bnb))}">${pctTxt(pct(b.bnb,a.bnb))}</span>`:''}</p>`;
   }
-  const hasTok=S.type==='manekineko'||S.type==='genesis'||!!q;
-  const body=l.slice(0,80).map(o=>`<tr><td>${fShort(o.t)}</td><td class="name">${esc(o.seg)}${o.talent==='elite'?'<span class="tag">E</span>':''}</td>${hasTok?`<td class="tok">#${esc(o.token)}</td><td>${o.level?'Lv.'+o.level:''}</td>`:''}<td>${fmt(V(o))}</td></tr>`).join('');
-  el.innerHTML=head+`<table><thead><tr><th>日時 (JST)</th><th style="text-align:left">区分</th>${hasTok?'<th class="tok">token</th><th>Lv</th>':''}<th>${unitLab()}</th></tr></thead><tbody>${body||'<tr><td class="empty" colspan="5">取引がありません</td></tr>'}</tbody></table>`;
+  const linTag=o=>o.type==='manekineko'&&o.lineage?`<span class="tag">${LGROUP_OF(o.lin)?'['+LGROUP_OF(o.lin)[0]+'] ':''}${esc(o.lin.toUpperCase())}</span>`:'';
+  const nameOf=o=>o.type==='breed_item'?esc(o.name)+' <span class="tag">'+esc(o.variant||'NEW')+'</span>':esc(o.name);
+  const body=l.slice(0,100).map(o=>`<tr><td>${fShort(o.t)}</td><td class="name">${nameOf(o)}${linTag(o)}${o.talent==='elite'?'<span class="tag">ELITE</span>':''}</td><td>${o.level?'Lv.'+o.level:''}</td><td>${fmt(o.bnb,'bnb')}</td><td class="tok">${o.usd!=null?fmt(o.usd,'usd'):'—'}</td></tr>`).join('');
+  el.innerHTML=head+`<table><thead><tr><th>日時 (JST)</th><th style="text-align:left">名前</th><th>Lv</th><th>BNB</th><th class="tok">USD</th></tr></thead><tbody>${body||'<tr><td class="empty" colspan="5">取引がありません</td></tr>'}</tbody></table>`;
 }
 document.getElementById('q').addEventListener('input',()=>drawTape(scopedCache));
 
