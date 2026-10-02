@@ -493,8 +493,9 @@ function drawTape(list){
   }
   const linTag=o=>o.type==='manekineko'&&o.lineage?`<span class="tag">${LGROUP_OF(o.lin)?'['+LGROUP_OF(o.lin)[0]+'] ':''}${esc(o.lin.toUpperCase())}</span>`:'';
   const nameOf=o=>o.type==='breed_item'?esc(o.name)+' <span class="tag">'+esc(o.variant||'NEW')+'</span>':esc(o.name);
-  const body=l.slice(0,100).map(o=>`<tr><td>${fShort(o.t)}</td><td class="name">${nameOf(o)}${linTag(o)}${o.talent==='elite'?'<span class="tag">ELITE</span>':''}</td><td>${o.level?'Lv.'+o.level:''}</td><td>${fmt(o.bnb,'bnb')}</td><td class="tok">${o.usd!=null?fmt(o.usd,'usd'):'—'}</td></tr>`).join('');
-  el.innerHTML=head+`<table><thead><tr><th>日時 (JST)</th><th style="text-align:left">名前</th><th>Lv</th><th>BNB</th><th class="tok">USD</th></tr></thead><tbody>${body||'<tr><td class="empty" colspan="5">取引がありません</td></tr>'}</tbody></table>`;
+  const showLv=l.some(o=>o.type==='manekineko');
+  const body=l.slice(0,100).map(o=>`<tr><td>${fShort(o.t)}</td><td class="name">${nameOf(o)}${linTag(o)}${o.talent==='elite'?'<span class="tag">ELITE</span>':''}</td>${showLv?`<td>${o.level?'Lv.'+o.level:''}</td>`:''}<td>${fmt(o.bnb,'bnb')}</td><td class="tok">${o.usd!=null?fmt(o.usd,'usd'):'—'}</td></tr>`).join('');
+  el.innerHTML=head+`<table><thead><tr><th>日時 (JST)</th><th style="text-align:left">名前</th>${showLv?'<th>Lv</th>':''}<th>BNB</th><th class="tok">USD</th></tr></thead><tbody>${body||'<tr><td class="empty" colspan="5">取引がありません</td></tr>'}</tbody></table>`;
 }
 document.getElementById('q').addEventListener('input',()=>drawTape(scopedCache));
 
@@ -505,6 +506,8 @@ function render(){
   drawSeg('unitSeg',[['bnb','BNB'],['usd','USD']],'unit');
   scopedCache=scoped();
   drawTicker(scopedCache);drawPrice(scopedCache);drawTape(scopedCache);drawLevel(scopedCache);
+  // layout can change between tabs (sidebar shown/hidden), so refit charts to their containers
+  requestAnimationFrame(()=>Object.values(charts).forEach(c=>c.resize()));
 }
 const lr=D.lastRun||D.built;
 document.getElementById('updated').innerHTML=`最終取得 <span class="mono">${lr?fTime(lr):'—'}</span> · <span class="mono">${rows.length.toLocaleString()}</span> trades`;
