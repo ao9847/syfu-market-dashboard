@@ -244,7 +244,8 @@ const itemOpts=()=>{const seen=new Set(rows.filter(o=>o.cat==='items').map(o=>o.
 const FG={
   manekineko:[
     ['rarity','RARITY',['COMMON','UNCOMMON','RARE'],o=>[(o.rarity||'').toUpperCase()]],
-    ['type','TYPE',['NONE','OG','ORIGIN','ELITE'],o=>o.tags],
+    ['type','TYPE',['NONE','OG','ORIGIN'],o=>[o.kind]],
+    ['talent','TALENT',['NORMAL','ELITE'],o=>[o.talent==='elite'?'ELITE':'NORMAL']],
     ['stage','STAGE',['POD','MINI','PRIME'],o=>[o.stage]],
     ['rank','PARAMETER RANK',['P0','P1','P2','P3','P4'],o=>[(o.rank||'').toUpperCase()]],
     ['edition','EDITION',['STANDARD','KDDI','LUPIN THE IIIRD','SNPIT','1BLOCK STUDIO'],o=>[o.edition]],
@@ -256,7 +257,8 @@ const SHORT={COMMON:'C',UNCOMMON:'UC',RARE:'R'};
 
 /* ---------- state */
 const S={type:'manekineko',range:90,unit:'bnb',seg:null,f:{},sort:{k:'n30',d:-1},open:{}};
-try{const s=JSON.parse(localStorage.getItem('smw2')||'{}');['type','range','unit'].forEach(k=>{if(s[k]!==undefined)S[k]=s[k]});if(!['manekineko','genesis','items'].includes(S.type))S.type='items';if(s.f)for(const k in s.f)S.f[k]=new Set(s.f[k]);if(s.open)S.open=s.open;}catch(e){}
+try{const s=JSON.parse(localStorage.getItem('smw2')||'{}');['type','range','unit'].forEach(k=>{if(s[k]!==undefined)S[k]=s[k]});if(!['manekineko','genesis','items'].includes(S.type))S.type='items';if(s.f)for(const k in s.f)S.f[k]=new Set(s.f[k]);
+  {const t=S.f['manekineko.type'];if(t&&t.has('ELITE')){t.delete('ELITE');(S.f['manekineko.talent']||(S.f['manekineko.talent']=new Set())).add('ELITE')}}if(s.open)S.open=s.open;}catch(e){}
 function save(){try{localStorage.setItem('smw2',JSON.stringify({type:S.type,range:S.range,unit:S.unit,open:S.open,f:Object.fromEntries(Object.entries(S.f).map(([k,v])=>[k,[...v]]))}))}catch(e){}}
 const fk=k=>S.type+'.'+k;
 const fset=k=>S.f[fk(k)]||(S.f[fk(k)]=new Set());
