@@ -412,6 +412,11 @@ function drawPrice(list){
   const inR=r.filter(o=>o.t>=start).map(o=>Object.assign(Object.create(o),{day:bk(o.t)}));
   const segs=[...new Set(inR.map(o=>o.seg))];
   const multi=S.type==='items'&&segs.length>1;
+  // MANEKINEKO: draw one median line per rarity when more than one rarity is shown
+  const RAR=[['common','C','#4c8ff0'],['uncommon','UC','#e8b44a'],['rare','R','#22b389']];
+  const rars=S.type==='manekineko'?RAR.filter(([k])=>inR.some(o=>o.rarity===k)):[];
+  const byRar=rars.length>1;
+  const rarLab=o=>(RAR.find(x=>x[0]===o.rarity)||[,''])[1];
   const daily=l=>{const m=new Map();l.forEach(o=>{if(!m.has(o.day))m.set(o.day,[]);m.get(o.day).push(V(o))});return m};
   const all=daily(inR);
   const byB=new Map();inR.forEach(o=>{if(!byB.has(o.day))byB.set(o.day,[]);byB.get(o.day).push(o)});
@@ -425,6 +430,16 @@ function drawPrice(list){
     order.forEach(seg=>{const m=daily(inR.filter(o=>o.seg===seg));const c=ITEM_COLORS[seg]||css('--ink-2');
       series.push({name:seg,type:'line',data:days.map((_,i)=>{const a=m.get(d0+i);return a?med(a):'-'}),connectNulls:true,showSymbol:true,symbolSize:4,lineStyle:{width:2,color:c},itemStyle:{color:c}})});
     leg.innerHTML=`<b style="color:var(--ink)">${B===DAY?'日次':B===3600?'1時間ごとの':'4時間ごとの'}中央値</b>`+order.map(x=>`<span><i style="background:${ITEM_COLORS[x]||'var(--ink-2)'}"></i>${esc(x)}</span>`).join('');
+  } else if(byRar){
+    const unit=B===DAY?'日次':B===3600?'1時間ごとの':'4時間ごとの';
+    rars.forEach(([k,l,c],n)=>{
+      const sub=inR.filter(o=>o.rarity===k);const m=daily(sub);
+      series.push({name:l+' 約定',type:'scatter',data:sub.map(o=>[idx(o.day),V(o)]),symbolSize:B===DAY?6:8,itemStyle:{color:c,opacity:.45,borderColor:css('--panel'),borderWidth:1},silent:true,z:2});
+      const line={name:l,type:'line',data:days.map((_,i)=>{const a=m.get(d0+i);return a?med(a):'-'}),connectNulls:true,showSymbol:true,symbol:'circle',symbolSize:4,lineStyle:{width:2,color:c},itemStyle:{color:c},z:3};
+      if(n===0)line.markLine={symbol:'none',silent:true,precision:8,label:{position:'end',formatter:p=>fmt(p.value),color:'#0b0e12',backgroundColor:css('--ink-2'),padding:[2,4],borderRadius:2,fontFamily:'IBM Plex Mono',fontSize:10.5},lineStyle:{color:css('--ink-2'),type:'dashed',width:1},data:r.length?[{yAxis:V(r[0])}]:[]};
+      series.push(line);
+    });
+    leg.innerHTML=`<b style="color:var(--ink)">${unit}中央値</b>`+rars.map(([k,l,c])=>`<span><i style="background:${c}"></i>${l}</span>`).join('')+`<span><u style="background:var(--ink-2)"></u>個別の約定（色はレアリティ）</span><span class="flat">破線 = 直近の成約価格</span>`;
   } else {
     const med1=days.map((_,i)=>{const a=all.get(d0+i);return a?med(a):'-'});
     const c=css('--gold');
@@ -447,11 +462,14 @@ function drawPrice(list){
       let h=`<b>${days[i]}</b> <span style="color:${css('--muted')}">${cnt[i]}件</span>`;
       if(multi){
         segOrder.forEach(seg=>{const ts=trades.filter(o=>o.seg===seg);if(!ts.length)return;h+=`<br><span style="color:${ITEM_COLORS[seg]||css('--ink-2')}">●</span> ${esc(seg)} 中央値 ${fmt(med(ts.map(V)))}（${ts.length}件）`});
+      } else if(byRar){
+        rars.forEach(([k,l,c])=>{const ts=trades.filter(o=>o.rarity===k);if(!ts.length)return;h+=`<br><span style="color:${c}">●</span> ${l} 中央値 ${fmt(med(ts.map(V)))}（${ts.length}件）`});
+        if(!trades.length)h+=`<br><span style="color:${css('--muted')}">約定なし</span>`;
       } else if(a.length){
         h+=`<br><span style="color:${css('--gold')}">中央値 ${fmt(med(a))}</span>　安 ${fmt(Math.min(...a))} / 高 ${fmt(Math.max(...a))}`;
       } else h+=`<br><span style="color:${css('--muted')}">約定なし</span>`;
       if(trades.length){
-        h+=`<div style="margin-top:4px;padding-top:4px;border-top:1px solid ${css('--line-2')}">`+trades.slice(0,10).map(o=>`${fShort(o.t)}　${fmt(V(o))}${multi?' · '+esc(o.seg):''}`).join('<br>')+(trades.length>10?`<br><span style="color:${css('--muted')}">ほか ${trades.length-10}件</span>`:'')+`</div>`;
+        h+=`<div style="margin-top:4px;padding-top:4px;border-top:1px solid ${css('--line-2')}">`+trades.slice(0,10).map(o=>`${fShort(o.t)}　${fmt(V(o))}${multi?' · '+esc(o.seg):byRar?' · '+rarLab(o):''}`).join('<br>')+(trades.length>10?`<br><span style="color:${css('--muted')}">ほか ${trades.length-10}件</span>`:'')+`</div>`;
       }
       return h+(trades.length?'':'<br>')+`出来高 ${fmt(vol[i])} ${unitLab()}`}},
     legend:{show:false},
