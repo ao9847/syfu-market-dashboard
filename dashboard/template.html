@@ -404,7 +404,10 @@ function drawPrice(list){
   const now=Date.now()/1000;const r=list.filter(o=>isFinite(V(o)));
   const B=S.range===1?3600:S.range===7?4*3600:DAY;
   const bk=t=>Math.floor((t+JST)/B);
-  const start=S.range?now-S.range*DAY:(r.length?r[r.length-1].t:now);
+  // fixed x-range: the whole selected period, or (ALL) from the tab's first trade — never from the filtered subset,
+  // so changing filters does not shift the axis
+  const tabRows=base();
+  const start=S.range?now-S.range*DAY:(tabRows.length?tabRows[tabRows.length-1].t:now);
   const d0=bk(start),T=bk(now);
   const lab=b=>{const x=new Date(b*B*1000);const md=pad(x.getUTCMonth()+1)+'/'+pad(x.getUTCDate());return B===DAY?md:B===3600?pad(x.getUTCHours())+':00':md+' '+pad(x.getUTCHours())+'時'};
   const idx=b=>b-d0;
